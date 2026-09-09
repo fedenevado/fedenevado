@@ -1,0 +1,498 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  google
+  apple
+  email
+}
+
+enum FriendshipStatus {
+  pending
+  accepted
+  blocked
+}
+
+enum CalendarVisibility {
+  none
+  busy_only
+  full
+}
+
+enum PlanType {
+  viaje
+  comida
+  evento
+  plan_casual
+}
+
+enum PlanStatus {
+  draft
+  confirmed
+  cancelled
+}
+
+enum GuestListVisibility {
+  hidden
+  public_count
+  public_full
+}
+
+enum RsvpStatus {
+  pending
+  yes
+  no
+  maybe
+}
+
+enum ParticipantRole {
+  owner
+  editor
+  guest
+}
+
+enum SplitType {
+  equal
+  manual
+}
+
+enum QuestionType {
+  text
+  yes_no
+  single_choice
+  multi_choice
+}
+
+enum NotificationType {
+  plan_invite
+  rsvp_reminder
+  new_expense
+  expense_settled
+  new_message
+  plan_updated
+  join_request_received
+  join_request_approved
+}
+
+enum PlanVisibility {
+  publica
+  privada
+}
+
+enum JoinRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id                 String   @id @default(uuid())
+  name               String
+  email              String   @unique
+  authProvider       AuthProvider @map("auth_provider")
+  avatarUrl          String?  @map("avatar_url")
+  calendarSyncToken  String?  @map("calendar_sync_token")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  ownedPlans         Plan[]              @relation("PlanOwner")
+  participations     PlanParticipant[]
+  expensesPaid       Expense[]
+  expenseSplits      ExpenseSplit[]
+  messages           Message[]
+  notifications      Notification[]
+  invitationsCreated Invitation[]
+  joinRequests       JoinRequest[]
+  reminders          Reminder[]
+  reminderShares     ReminderShare[]
+  listTemplates      ListTemplate[]
+  paymentsSent       Payment[]           @relation("PaymentFrom")
+  paymentsReceived   Payment[]           @relation("PaymentTo")
+
+  friendshipsSent     Friendship[] @relation("Requester")
+  friendshipsReceived Friendship[] @relation("Addressee")
+
+  @@map("users")
+}
+
+model Friendship {
+  id                  String             @id @default(uuid())
+  requesterId         String             @map("requester_id")
+  addresseeId         String             @map("addressee_id")
+  status              FriendshipStatus   @default(pending)
+  calendarVisibility  CalendarVisibility @default(none) @map("calendar_visibility")
+  createdAt           DateTime           @default(now()) @map("created_at")
+
+  requester User @relation("Requester", fields: [requesterId], references: [id])
+  addressee User @relation("Addressee", fields: [addresseeId], references: [id])
+
+  @@unique([requesterId, addresseeId])
+  @@map("friendships")
+}
+
+model Plan {
+  id         String         @id @default(uuid())
+  ownerId    String         @map("owner_id")
+  title      String
+  type       PlanType
+  startDate  DateTime       @map("start_date")
+  endDate    DateTime?      @map("end_date")
+  time       String?        // hora libre (HH:mm) para tipo evento/comida; null para viaje o plan_casual sin hora fija
+  location   String?
+  status     PlanStatus     @default(draft)
+  visibility PlanVisibility @default(publica) // pública = cualquiera con el enlace se une directo; privada = requiere aprobación
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  owner        User              @relation("PlanOwner", fields: [ownerId], references: [id])
+  config       PlanFieldConfig?
+  invitations  Invitation[]
+  participants PlanParticipant[]
+  joinRequests JoinRequest[]
+  questions    RsvpQuestion[]
+  expenses     Expense[]
+  messages     Message[]
+  lists        List[]
+  itinerary    TripItinerary?
+  payments     Payment[]
+
+  @@map("plans")
+}
+
+model PlanFieldConfig {
+  id                   String              @id @default(uuid())
+  planId               String              @unique @map("plan_id")
+  expensesEnabled      Boolean             @default(true) @map("expenses_enabled")
+  chatEnabled          Boolean             @default(true) @map("chat_enabled")
+  itineraryEnabled     Boolean             @default(false) @map("itinerary_enabled")
+  locationRequired     Boolean             @default(false) @map("location_required")
+  guestListVisibility  GuestListVisibility @default(public_full) @map("guest_list_visibility")
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("plan_field_configs")
+}
+
+model Invitation {
+  id        String    @id @default(uuid())
+  planId    String    @map("plan_id")
+  token     String    @unique
+  createdBy String    @map("created_by")
+  maxUses   Int?      @map("max_uses")
+  usesCount Int       @default(0) @map("uses_count")
+  expiresAt DateTime? @map("expires_at")
+  revoked   Boolean   @default(false)
+
+  plan         Plan              @relation(fields: [planId], references: [id], onDelete: Cascade)
+  creator      User              @relation(fields: [createdBy], references: [id])
+  participants PlanParticipant[]
+
+  @@map("invitations")
+}
+
+// Solo se crea cuando Plan.visibility = privada. El propietario debe aprobar
+// o rechazar antes de que la persona pase a ser PlanParticipant.
+model JoinRequest {
+  id          String             @id @default(uuid())
+  planId      String             @map("plan_id")
+  userId      String?            @map("user_id") // null si quien solicita no tiene cuenta todavía
+  guestName   String?            @map("guest_name")
+  status      JoinRequestStatus  @default(pending)
+  requestedAt DateTime           @default(now()) @map("requested_at")
+  resolvedAt  DateTime?          @map("resolved_at")
+
+  plan Plan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("join_requests")
+}
+
+model PlanParticipant {
+  id               String     @id @default(uuid())
+  planId           String     @map("plan_id")
+  userId           String?    @map("user_id")
+  guestName        String?    @map("guest_name")
+  rsvpStatus       RsvpStatus @default(pending) @map("rsvp_status")
+  role             ParticipantRole @default(guest)
+  showInGuestList  Boolean    @default(true) @map("show_in_guest_list")
+  invitationId     String?    @map("invitation_id")
+  joinedAt         DateTime   @default(now()) @map("joined_at")
+
+  plan       Plan         @relation(fields: [planId], references: [id], onDelete: Cascade)
+  user       User?        @relation(fields: [userId], references: [id])
+  invitation Invitation?  @relation(fields: [invitationId], references: [id])
+  answers    RsvpAnswer[]
+  splits     ExpenseSplit[]
+
+  @@map("plan_participants")
+}
+
+model RsvpQuestion {
+  id           String       @id @default(uuid())
+  planId       String       @map("plan_id")
+  questionText String       @map("question_text")
+  questionType QuestionType @map("question_type")
+  options      Json?
+  required     Boolean      @default(false)
+  order        Int          @default(0)
+
+  plan    Plan         @relation(fields: [planId], references: [id], onDelete: Cascade)
+  answers RsvpAnswer[]
+
+  @@map("rsvp_questions")
+}
+
+model RsvpAnswer {
+  id                String   @id @default(uuid())
+  rsvpQuestionId    String   @map("rsvp_question_id")
+  planParticipantId String   @map("plan_participant_id")
+  answerValue       Json     @map("answer_value")
+  answeredAt        DateTime @default(now()) @map("answered_at")
+
+  question    RsvpQuestion    @relation(fields: [rsvpQuestionId], references: [id], onDelete: Cascade)
+  participant PlanParticipant @relation(fields: [planParticipantId], references: [id], onDelete: Cascade)
+
+  @@map("rsvp_answers")
+}
+
+model Expense {
+  id          String    @id @default(uuid())
+  planId      String    @map("plan_id")
+  paidBy      String    @map("paid_by")
+  description String
+  amount      Decimal   @db.Decimal(10, 2)
+  currency    String    @default("EUR")
+  splitType   SplitType @default(equal) @map("split_type")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  plan   Plan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  payer  User           @relation(fields: [paidBy], references: [id])
+  splits ExpenseSplit[]
+
+  @@map("expenses")
+}
+
+model ExpenseSplit {
+  id           String  @id @default(uuid())
+  expenseId    String  @map("expense_id")
+  userId       String  @map("user_id")
+  amountOwed   Decimal @map("amount_owed") @db.Decimal(10, 2)
+  settled      Boolean @default(false)
+
+  expense           Expense          @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id])
+  // Participante del plan al que pertenece este split (para filtrar por rsvp/plan)
+  planParticipant    PlanParticipant? @relation(fields: [planParticipantId], references: [id])
+  planParticipantId  String?          @map("plan_participant_id")
+
+  @@map("expense_splits")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  planId    String   @map("plan_id")
+  senderId  String   @map("sender_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  plan   Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+// --- Listas (checklists) por plan, con plantillas reutilizables entre planes ---
+
+model List {
+  id        String   @id @default(uuid())
+  planId    String   @map("plan_id")
+  title     String
+  templateId String? @map("template_id") // si esta lista se creó desde una plantilla, o fue guardada como una
+  createdAt DateTime @default(now()) @map("created_at")
+
+  plan     Plan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  template ListTemplate?  @relation(fields: [templateId], references: [id])
+  items    ListItem[]
+
+  @@map("lists")
+}
+
+model ListItem {
+  id     String  @id @default(uuid())
+  listId String  @map("list_id")
+  text   String
+  done   Boolean @default(false)
+  order  Int     @default(0)
+
+  list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@map("list_items")
+}
+
+// Plantillas guardadas por el usuario, reutilizables en cualquier plan (no atadas a uno concreto)
+model ListTemplate {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User               @relation(fields: [userId], references: [id])
+  items ListTemplateItem[]
+  lists List[] // listas creadas o vinculadas a partir de esta plantilla
+
+  @@map("list_templates")
+}
+
+model ListTemplateItem {
+  id         String @id @default(uuid())
+  templateId String @map("template_id")
+  text       String
+  order      Int    @default(0)
+
+  template ListTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("list_template_items")
+}
+
+// --- Tareas de ruta ("recordatorios"): pueden compartirse con amigos y tener su propia checklist ---
+
+model Reminder {
+  id        String   @id @default(uuid())
+  ownerId   String   @map("owner_id") // quien la creó
+  date      DateTime @db.Date
+  title     String
+  time      String?  // hora libre (HH:mm), opcional
+  done      Boolean  @default(false) // estado si la tarea no tiene items; si tiene items, se calcula en el cliente
+
+  owner      User             @relation(fields: [ownerId], references: [id])
+  sharedWith ReminderShare[]
+  items      ReminderItem[]
+
+  @@map("reminders")
+}
+
+// Amigos con los que se comparte una tarea (relación muchos-a-muchos)
+model ReminderShare {
+  id         String @id @default(uuid())
+  reminderId String @map("reminder_id")
+  userId     String @map("user_id")
+
+  reminder Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([reminderId, userId])
+  @@map("reminder_shares")
+}
+
+// Checklist opcional dentro de una tarea de ruta
+model ReminderItem {
+  id         String  @id @default(uuid())
+  reminderId String  @map("reminder_id")
+  text       String
+  done       Boolean @default(false)
+  order      Int     @default(0)
+
+  reminder Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  @@map("reminder_items")
+}
+
+// Registro de que una transferencia simplificada de "cerrar cuentas" fue marcada como pagada.
+// Dispara una notificación (expense_settled) a la persona que recibe el pago.
+model Payment {
+  id        String   @id @default(uuid())
+  planId    String   @map("plan_id")
+  fromId    String   @map("from_id") // quien pagó
+  toId      String   @map("to_id")   // quien recibió
+  amount    Decimal  @db.Decimal(10, 2)
+  paidAt    DateTime @default(now()) @map("paid_at")
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  from User @relation("PaymentFrom", fields: [fromId], references: [id])
+  to   User @relation("PaymentTo", fields: [toId], references: [id])
+
+  @@unique([planId, fromId, toId])
+  @@map("payments")
+}
+
+// --- Itinerario de viaje ("El Plan"): solo si PlanFieldConfig.itineraryEnabled = true ---
+
+model TripItinerary {
+  id     String @id @default(uuid())
+  planId String @unique @map("plan_id")
+
+  plan          Plan                    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  importantInfo TripImportantInfo[]
+  accommodation TripAccommodation[]
+  days          TripDay[]
+
+  @@map("trip_itineraries")
+}
+
+model TripImportantInfo {
+  id           String @id @default(uuid())
+  itineraryId  String @map("itinerary_id")
+  title        String
+  content      String
+
+  itinerary TripItinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@map("trip_important_info")
+}
+
+model TripAccommodation {
+  id          String    @id @default(uuid())
+  itineraryId String    @map("itinerary_id")
+  name        String
+  address     String?
+  checkIn     DateTime? @map("check_in") @db.Date
+  checkOut    DateTime? @map("check_out") @db.Date
+  notes       String?
+
+  itinerary TripItinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@map("trip_accommodation")
+}
+
+model TripDay {
+  id          String   @id @default(uuid())
+  itineraryId String   @map("itinerary_id")
+  date        DateTime @db.Date
+
+  itinerary  TripItinerary    @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  activities TripActivity[]
+
+  @@unique([itineraryId, date])
+  @@map("trip_days")
+}
+
+model TripActivity {
+  id       String  @id @default(uuid())
+  dayId    String  @map("day_id")
+  time     String  // HH:mm
+  title    String
+  location String?
+  notes    String?
+
+  day TripDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  @@map("trip_activities")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  planId    String?          @map("plan_id")
+  actorId   String?          @map("actor_id")
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
