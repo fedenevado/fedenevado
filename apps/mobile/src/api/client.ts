@@ -47,10 +47,39 @@ export interface MeResponse {
   avatarUrl: string | null;
 }
 
+export interface Friend {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface PendingRequest {
+  friendshipId: string;
+  from: Friend;
+  createdAt: string;
+}
+
+export type FriendRelation = 'none' | 'pending_sent' | 'pending_received' | 'friends';
+
+export interface FriendSearchResult extends Friend {
+  relation: FriendRelation;
+  friendshipId: string | null;
+}
+
 export const api = {
   register: (name: string, email: string, password: string) =>
     request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
   login: (email: string, password: string) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   me: (token: string) => request<MeResponse>('/users/me', {}, token),
+  listFriends: (token: string) => request<Friend[]>('/friendships', {}, token),
+  listFriendRequests: (token: string) => request<PendingRequest[]>('/friendships/requests', {}, token),
+  searchFriends: (token: string, q: string) =>
+    request<FriendSearchResult[]>(`/friendships/search?q=${encodeURIComponent(q)}`, {}, token),
+  sendFriendRequest: (token: string, addresseeId: string) =>
+    request<{ id: string }>('/friendships', { method: 'POST', body: JSON.stringify({ addresseeId }) }, token),
+  acceptFriendRequest: (token: string, friendshipId: string) =>
+    request<{ success: true }>(`/friendships/${friendshipId}/accept`, { method: 'PATCH' }, token),
+  removeFriendRequest: (token: string, friendshipId: string) =>
+    request<{ success: true }>(`/friendships/${friendshipId}`, { method: 'DELETE' }, token),
 };

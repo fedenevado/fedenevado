@@ -1,8 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Redirect } from 'expo-router';
+import { Redirect, useRouter, type Href } from 'expo-router';
+
+// expo-router's generated route types (.expo/types/router.d.ts) only refresh while `expo start`
+// is running, so a brand-new route needs this cast until the dev server has rebuilt them once.
+const FRIENDS_ROUTE = '/friends' as Href;
 import { useAuth } from '@/auth/auth-context';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { token, user, logout } = useAuth();
 
   if (!token || !user) {
@@ -13,6 +18,15 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <Text style={styles.greeting}>Hola, {user?.name ?? ''}</Text>
       <Text style={styles.email}>{user?.email}</Text>
+
+      <Pressable
+        onPress={() => router.push(FRIENDS_ROUTE)}
+        accessibilityRole="button"
+        accessibilityLabel="Ir a Amigos"
+        style={[styles.button, styles.friendsButton]}
+      >
+        <Text style={styles.buttonLabel}>Amigos</Text>
+      </Pressable>
 
       <Pressable
         onPress={logout}
@@ -46,5 +60,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  friendsButton: { marginBottom: 12 },
   buttonLabel: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });
