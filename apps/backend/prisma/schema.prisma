@@ -167,6 +167,7 @@ model PlanFieldConfig {
   id                   String              @id @default(uuid())
   planId               String              @unique @map("plan_id")
   expensesEnabled      Boolean             @default(true) @map("expenses_enabled")
+  expensesClosed       Boolean             @default(false) @map("expenses_closed")
   chatEnabled          Boolean             @default(true) @map("chat_enabled")
   itineraryEnabled     Boolean             @default(false) @map("itinerary_enabled")
   locationRequired     Boolean             @default(false) @map("location_required")

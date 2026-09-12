@@ -4,6 +4,9 @@ import { Redirect, useFocusEffect, useLocalSearchParams, useRouter, type Href } 
 import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type Plan, type RsvpStatus } from '@/api/client';
 import { formatPlanDate, planTypeColor, planTypeLabel } from '@/plans/plan-types';
+import { ExpensesTab } from '@/plans/expenses-tab';
+
+type DetailTab = 'detalles' | 'gastos';
 
 const RSVP_LABEL: Record<RsvpStatus, string> = {
   pending: 'Sin responder',
@@ -30,6 +33,7 @@ export default function PlanDetailScreen() {
   const [rsvpPromptInitialized, setRsvpPromptInitialized] = useState(false);
   const [showDeclineConfirm, setShowDeclineConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [tab, setTab] = useState<DetailTab>('detalles');
 
   const load = useCallback(async () => {
     if (!token || !id) return;
@@ -211,12 +215,43 @@ export default function PlanDetailScreen() {
         </Text>
       </View>
 
+      <View style={styles.tabRow}>
+        {(
+          [
+            { key: 'detalles', label: 'Detalles' },
+            { key: 'gastos', label: 'Gastos' },
+          ] as const
+        ).map((t) => {
+          const isActive = tab === t.key;
+          return (
+            <Pressable
+              key={t.key}
+              onPress={() => setTab(t.key)}
+              accessibilityRole="tab"
+              accessibilityLabel={t.label}
+              accessibilityState={{ selected: isActive }}
+              style={[styles.tab, isActive && styles.tabActive]}
+            >
+              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{t.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       {error && (
         <Text style={styles.error} accessibilityLiveRegion="polite" role="alert">
           {error}
         </Text>
       )}
 
+      {tab === 'gastos' ? (
+        <ExpensesTab
+          token={token}
+          planId={plan.id}
+          myUserId={user.id}
+          confirmedParticipants={plan.participants.filter((p) => p.rsvpStatus === 'yes' && p.userId)}
+        />
+      ) : (
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.typeBadgeRow}>
           <View style={[styles.typeDot, { backgroundColor: planTypeColor(plan.type) }]} />
@@ -284,6 +319,7 @@ export default function PlanDetailScreen() {
           </View>
         )}
       </ScrollView>
+      )}
 
       {rsvpPromptOpen && (
         <ChangeRsvpModal
@@ -417,6 +453,20 @@ const styles = StyleSheet.create({
   backButton: { minHeight: 44, minWidth: 44, justifyContent: 'center' },
   backLabel: { fontSize: 15, color: '#161B2E', fontWeight: '600' },
   title: { fontSize: 18, fontWeight: '700', color: '#161B2E', flexShrink: 1 },
+  tabRow: { flexDirection: 'row', gap: 6, marginBottom: 12 },
+  tab: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#DCDCD8',
+  },
+  tabActive: { backgroundColor: '#161B2E', borderColor: '#161B2E' },
+  tabLabel: { fontSize: 13, fontWeight: '600', color: '#161B2E' },
+  tabLabelActive: { color: '#fff' },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   loading: { marginTop: 24 },
   scrollContent: { paddingBottom: 40 },

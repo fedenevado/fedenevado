@@ -1,5 +1,126 @@
 # Progreso — Cantixplora
 
+## v0.4 — Gastos — EN CURSO, pendiente de verificación manual (2026-09-12)
+
+Alcance acordado con el usuario: Expense/ExpenseSplit con reparto parcial
+(selección explícita de participantes), balances por plan con reparto
+simplificado (mínimo de transferencias), "Cerrar cuentas" con confirmación
+(el prototipo no la tiene — se añadió aquí a propósito, no es una omisión),
+marcar transferencia como pagada con notificación, editar/eliminar gastos.
+Fuera de alcance: Chat/Listas (v0.5).
+
+Plan de implementación completo (contexto, decisiones de diseño, orden de
+construcción): `/root/.claude/plans/swift-prancing-panda.md`.
+
+### Cambio de modelo de datos (aprobado explícitamente por el usuario antes de tocar el schema)
+
+`docs/schema.prisma` no tenía ningún campo para "cuentas cerradas". Se
+añadió `PlanFieldConfig.expensesClosed` (booleano, default `false`) — ver
+`/root/.claude/plans/swift-prancing-panda.md` para la justificación de por
+qué ahí y no en `Plan` directamente. Migración
+`20260912174643_add_expenses_closed` generada y aplicada contra la base de
+datos real del VPS. `docs/schema.prisma` y `apps/backend/prisma/schema.prisma`
+se mantienen idénticos.
+
+### Qué se implementó
+
+- **Backend** (`apps/backend/src/expenses/`): `ExpensesModule`,
+  `ExpensesController`, `ExpensesService`, DTOs (`create-expense`,
+  `update-expense`, `mark-paid`), tests unitarios
+  (`expenses.service.spec.ts`). Endpoints, todos bajo
+  `plans/:planId/expenses`: `GET /`, `POST /`, `PATCH /:expenseId`,
+  `DELETE /:expenseId`, `GET /balances`, `POST /close-accounts`,
+  `POST /reopen-accounts`, `PATCH /settlements/pay`,
+  `DELETE /settlements/pay`. Reglas de pertenencia: solo participantes
+  confirmados (`rsvpStatus = 'yes'`) gestionan gastos y cierran/reabren
+  cuentas; solo las dos personas implicadas en una transferencia concreta
+  pueden marcarla/desmarcarla como pagada; con las cuentas cerradas no se
+  puede crear/editar/eliminar gastos. Los balances y el reparto
+  simplificado se recalculan en cada petición (no se guardan); lo único
+  persistido es qué transferencias ya se pagaron (`Payment`), comparando
+  también el importe (tolerancia 1 céntimo) para no dar por pagada una
+  deuda que cambió tras editar un gasto. El importe del pago lo calcula
+  el servidor, nunca se confía en el que mande el cliente. Al marcar una
+  transferencia como pagada se crea una `Notification`
+  (`type: expense_settled`) para la otra persona — no hay pantalla de
+  notificaciones todavía (es v0.9), la evidencia de que se creó se
+  recogerá por consulta directa a la base de datos.
+- **Mobile**: pestaña "Gastos" nueva en `app/plan/[id].tsx` (junto a
+  "Detalles", con pestañas locales) que renderiza
+  `src/plans/expenses-tab.tsx`: tarjeta de balance, tarjeta de "Cuentas
+  cerradas · Resultado final" con el reparto simplificado y el botón
+  marcar/pagado (activo solo para las dos personas implicadas), lista de
+  gastos con aviso "(no todos)" cuando no participan todos los
+  confirmados, editar/eliminar, formulario de añadir/editar gasto
+  (descripción, importe, quién pagó, checklist de reparto), y el botón
+  "Cerrar cuentas" con diálogo de confirmación nuevo / "Volver a editar
+  gastos" sin confirmación (reabrir no es destructivo). Tipos y métodos
+  nuevos en `api/client.ts`.
+
+### Evidencia recogida en esta sesión (VPS, mismo entorno que corre el backend)
+
+```
+$ cd apps/backend && npx prisma migrate dev --name add_expenses_closed
+Applying migration `20260912174643_add_expenses_closed`
+Your database is now in sync with your schema.
+
+$ npx prisma validate
+The schema at prisma/schema.prisma is valid 🚀
+
+$ npx prisma migrate status
+2 migrations found in prisma/migrations
+Database schema is up to date!
+
+$ pnpm --filter backend test
+Test Suites: 5 passed, 5 total
+Tests:       38 passed, 38 total
+
+$ pnpm --filter backend build
+> nest build   (sin errores)
+
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json
+(sin salida — sin errores de tipos)
+```
+
+Nota de proceso: se volvió a usar `expo lint` puntualmente (sin comprometer
+`eslint.config.js`, igual que en v0.3) para revisar los archivos nuevos —
+no encontró ningún bug nuevo de reglas de hooks esta vez, solo el mismo
+patrón ya establecido (`setState` dentro de `useEffect` al cargar datos)
+que en el resto del código base. También se subieron a 44×44pt varios
+botones/chips de la pestaña Gastos que habían quedado por debajo del
+mínimo táctil (revisión de accesibilidad propia antes de pedir la prueba
+con lector de pantalla).
+
+### No verificado en esta sesión (pendiente)
+
+- **Prueba manual en Expo Go con al menos 3 cuentas reales**: añadir
+  gastos con reparto parcial (no todos), comprobar balances coherentes en
+  las 3 cuentas, editar un gasto y ver los balances recalcularse, cerrar
+  cuentas (con la confirmación), marcar una transferencia como pagada
+  desde una de las dos partes implicadas y comprobarlo desde la otra,
+  reabrir cuentas y volver a editar. Pasos detallados en la respuesta de
+  esta sesión.
+- Verificación de que una cuenta **no implicada** en una transferencia no
+  puede marcarla como pagada (la haré yo contra el backend real una vez
+  exista un caso de prueba).
+- Verificación de la `Notification` creada al marcar como pagada (la haré
+  yo por `psql` contra la base de datos real, tras la prueba manual del
+  usuario).
+- **Checklist de accesibilidad VoiceOver/TalkBack** sobre la pestaña
+  Gastos — recordatorio explícito pedido por el usuario. No dar la fase
+  por cerrada sin esto.
+
+### Checklist "antes de dar por cerrada la fase" (CLAUDE.md)
+
+- [x] Sin botones/filas sin acción real conectada: revisado — todo botón
+      interactivo de la pestaña Gastos llama a la API real.
+- [x] Filtros/estado de UI: no aplica gran cosa aquí (no hay filtros
+      nuevos); el formulario de gasto se resetea correctamente tras
+      guardar/cancelar.
+- [ ] **Probado en dispositivo real con Expo Go** — pendiente, ver arriba.
+- [ ] **Checklist de accesibilidad VoiceOver/TalkBack** — pendiente, ver
+      arriba.
+
 ## v0.3 — Planes (núcleo) — CERRADO 2026-09-12
 
 Alcance acordado con el usuario (más estrecho que `docs/roadmap.md`):

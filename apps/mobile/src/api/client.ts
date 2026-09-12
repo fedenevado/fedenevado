@@ -100,6 +100,51 @@ export interface PlanInput {
   invitedFriendIds?: string[];
 }
 
+export interface ExpenseSplit {
+  userId: string;
+  name: string;
+  amountOwed: number;
+}
+
+export interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  paidBy: string;
+  paidByName: string;
+  createdAt: string;
+  splits: ExpenseSplit[];
+}
+
+export interface ExpenseInput {
+  description: string;
+  amount: number;
+  paidBy: string;
+  splitWith: string[];
+}
+
+export interface BalanceEntry {
+  userId: string;
+  name: string;
+  net: number;
+}
+
+export interface SettlementTransfer {
+  fromId: string;
+  fromName: string;
+  toId: string;
+  toName: string;
+  amount: number;
+  paid: boolean;
+}
+
+export interface BalancesResult {
+  expensesClosed: boolean;
+  myNet: number;
+  balances: BalanceEntry[];
+  settlement: SettlementTransfer[];
+}
+
 export const api = {
   register: (name: string, email: string, password: string) =>
     request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
@@ -126,4 +171,33 @@ export const api = {
     request<{ success: true }>(`/plans/${id}`, { method: 'DELETE' }, token),
   setRsvp: (token: string, id: string, status: Exclude<RsvpStatus, 'pending'>) =>
     request<Plan>(`/plans/${id}/rsvp`, { method: 'PATCH', body: JSON.stringify({ status }) }, token),
+  listExpenses: (token: string, planId: string) => request<Expense[]>(`/plans/${planId}/expenses`, {}, token),
+  createExpense: (token: string, planId: string, input: ExpenseInput) =>
+    request<Expense>(`/plans/${planId}/expenses`, { method: 'POST', body: JSON.stringify(input) }, token),
+  updateExpense: (token: string, planId: string, expenseId: string, input: Partial<ExpenseInput>) =>
+    request<Expense>(
+      `/plans/${planId}/expenses/${expenseId}`,
+      { method: 'PATCH', body: JSON.stringify(input) },
+      token,
+    ),
+  deleteExpense: (token: string, planId: string, expenseId: string) =>
+    request<{ success: true }>(`/plans/${planId}/expenses/${expenseId}`, { method: 'DELETE' }, token),
+  getBalances: (token: string, planId: string) =>
+    request<BalancesResult>(`/plans/${planId}/expenses/balances`, {}, token),
+  closeAccounts: (token: string, planId: string) =>
+    request<{ expensesClosed: boolean }>(`/plans/${planId}/expenses/close-accounts`, { method: 'POST' }, token),
+  reopenAccounts: (token: string, planId: string) =>
+    request<{ expensesClosed: boolean }>(`/plans/${planId}/expenses/reopen-accounts`, { method: 'POST' }, token),
+  markTransferPaid: (token: string, planId: string, fromId: string, toId: string) =>
+    request<BalancesResult>(
+      `/plans/${planId}/expenses/settlements/pay`,
+      { method: 'PATCH', body: JSON.stringify({ fromId, toId }) },
+      token,
+    ),
+  unmarkTransferPaid: (token: string, planId: string, fromId: string, toId: string) =>
+    request<BalancesResult>(
+      `/plans/${planId}/expenses/settlements/pay`,
+      { method: 'DELETE', body: JSON.stringify({ fromId, toId }) },
+      token,
+    ),
 };

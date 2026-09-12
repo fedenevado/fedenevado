@@ -7,6 +7,7 @@ import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
 import { FriendshipsModule } from "./friendships/friendships.module";
 import { PlansModule } from "./plans/plans.module";
+import { ExpensesModule } from "./expenses/expenses.module";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { PlansModule } from "./plans/plans.module";
     UsersModule,
     FriendshipsModule,
     PlansModule,
+    ExpensesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
