@@ -50,11 +50,11 @@ $ pnpm --filter backend build
 > nest build   (sin errores)
 ```
 
-No verificado en esta sesión (pendiente, ver checklist más abajo):
-- Prueba manual en Expo Go en dispositivo físico del flujo completo
-  (buscar → enviar solicitud → aceptar desde la segunda cuenta → aparece en
-  "Amigos" de ambas).
-- Checklist VoiceOver/TalkBack de la pantalla `friends.tsx`.
+Verificado por el usuario con dos cuentas reales (confirmación explícita,
+2026-09-12): flujo completo buscar → enviar solicitud → aceptar desde la
+segunda cuenta → aparece en "Amigos" de ambas, en Expo Go en dispositivo
+real. También confirmado: accesibilidad con VoiceOver/TalkBack sobre la
+pantalla `friends.tsx`, correcta.
 
 ### Checklist "antes de dar por cerrada la fase" (CLAUDE.md)
 
@@ -65,14 +65,13 @@ No verificado en esta sesión (pendiente, ver checklist más abajo):
 - [x] Filtros/estado de UI: la pantalla `friends.tsx` recarga
       amigos/solicitudes al entrar y tras cada acción (no depende de estado
       que se pierda al cambiar de pantalla).
-- [ ] **Probado en dispositivo real con Expo Go** — pendiente de que el
-      usuario lo haga con dos cuentas (pasos abajo, en la respuesta de esta
-      sesión). No dar la fase por 100% cerrada hasta confirmarlo.
-- [ ] **Checklist de accesibilidad VoiceOver/TalkBack** sobre `friends.tsx`
-      — pendiente de que el usuario lo pruebe en el móvil. Igual que quedó
-      pendiente en v0.1 (nunca se confirmó explícitamente tampoco), esto se
-      arrastra como deuda de accesibilidad a revisar. **No asumir que está
-      hecho hasta que el usuario lo confirme.**
+- [x] **Probado en dispositivo real con Expo Go** — confirmado por el
+      usuario (2026-09-12) con dos cuentas reales: envío, aceptación y
+      aparición en la lista de amigos de ambas cuentas.
+- [x] **Checklist de accesibilidad VoiceOver/TalkBack** sobre `friends.tsx`
+      — confirmado por el usuario (2026-09-12).
+
+**v0.2 queda cerrado y verificado end-to-end.**
 
 ## v0.1 — Cimientos — CERRADO 2026-09-12
 
@@ -164,8 +163,10 @@ aprobación de solicitudes, invitado sin cuenta vía enlace).
 
 ## Deuda de accesibilidad arrastrada (no marcar como resuelta sin confirmación del usuario)
 
-- [ ] VoiceOver/TalkBack sobre login/registro (v0.1).
-- [ ] VoiceOver/TalkBack sobre `friends.tsx` (v0.2).
+- [ ] VoiceOver/TalkBack sobre login/registro (v0.1) — sigue pendiente,
+      nunca se confirmó explícitamente pese al cierre de v0.1.
+- [x] VoiceOver/TalkBack sobre `friends.tsx` (v0.2) — confirmado por el
+      usuario 2026-09-12.
 
 ## Reglas que siguen aplicando (de CLAUDE.md, no repetir el resto aquí)
 
