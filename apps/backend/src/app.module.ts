@@ -6,6 +6,7 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
 import { FriendshipsModule } from "./friendships/friendships.module";
+import { PlansModule } from "./plans/plans.module";
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { FriendshipsModule } from "./friendships/friendships.module";
     AuthModule,
     UsersModule,
     FriendshipsModule,
+    PlansModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

@@ -4,6 +4,7 @@ import { Redirect, useRouter, type Href } from 'expo-router';
 // expo-router's generated route types (.expo/types/router.d.ts) only refresh while `expo start`
 // is running, so a brand-new route needs this cast until the dev server has rebuilt them once.
 const FRIENDS_ROUTE = '/friends' as Href;
+const PLANS_ROUTE = '/plans' as Href;
 import { useAuth } from '@/auth/auth-context';
 
 export default function HomeScreen() {
@@ -18,6 +19,15 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <Text style={styles.greeting}>Hola, {user?.name ?? ''}</Text>
       <Text style={styles.email}>{user?.email}</Text>
+
+      <Pressable
+        onPress={() => router.push(PLANS_ROUTE)}
+        accessibilityRole="button"
+        accessibilityLabel="Ir a Mis planes"
+        style={[styles.button, styles.friendsButton]}
+      >
+        <Text style={styles.buttonLabel}>Planes</Text>
+      </Pressable>
 
       <Pressable
         onPress={() => router.push(FRIENDS_ROUTE)}

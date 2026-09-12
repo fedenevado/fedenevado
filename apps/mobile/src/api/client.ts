@@ -66,6 +66,40 @@ export interface FriendSearchResult extends Friend {
   friendshipId: string | null;
 }
 
+export type PlanType = 'viaje' | 'comida' | 'evento' | 'plan_casual';
+export type RsvpStatus = 'pending' | 'yes' | 'maybe' | 'no';
+
+export interface PlanParticipant {
+  id: string;
+  userId: string | null;
+  name: string;
+  avatarUrl: string | null;
+  role: string;
+  rsvpStatus: RsvpStatus;
+}
+
+export interface Plan {
+  id: string;
+  ownerId: string;
+  title: string;
+  type: PlanType;
+  startDate: string;
+  endDate: string | null;
+  time: string | null;
+  location: string | null;
+  participants: PlanParticipant[];
+}
+
+export interface PlanInput {
+  title: string;
+  type: PlanType;
+  startDate: string;
+  endDate?: string;
+  time?: string;
+  location?: string;
+  invitedFriendIds?: string[];
+}
+
 export const api = {
   register: (name: string, email: string, password: string) =>
     request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
@@ -82,4 +116,14 @@ export const api = {
     request<{ success: true }>(`/friendships/${friendshipId}/accept`, { method: 'PATCH' }, token),
   removeFriendRequest: (token: string, friendshipId: string) =>
     request<{ success: true }>(`/friendships/${friendshipId}`, { method: 'DELETE' }, token),
+  listPlans: (token: string) => request<Plan[]>('/plans', {}, token),
+  getPlan: (token: string, id: string) => request<Plan>(`/plans/${id}`, {}, token),
+  createPlan: (token: string, input: PlanInput) =>
+    request<Plan>('/plans', { method: 'POST', body: JSON.stringify(input) }, token),
+  updatePlan: (token: string, id: string, input: Partial<PlanInput>) =>
+    request<Plan>(`/plans/${id}`, { method: 'PATCH', body: JSON.stringify(input) }, token),
+  deletePlan: (token: string, id: string) =>
+    request<{ success: true }>(`/plans/${id}`, { method: 'DELETE' }, token),
+  setRsvp: (token: string, id: string, status: Exclude<RsvpStatus, 'pending'>) =>
+    request<Plan>(`/plans/${id}/rsvp`, { method: 'PATCH', body: JSON.stringify({ status }) }, token),
 };
