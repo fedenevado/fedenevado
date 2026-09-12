@@ -1,6 +1,6 @@
 # Progreso — Cantixplora
 
-## v0.3 — Planes (núcleo) — EN CURSO, pendiente de verificación manual (2026-09-12)
+## v0.3 — Planes (núcleo) — CERRADO 2026-09-12
 
 Alcance acordado con el usuario (más estrecho que `docs/roadmap.md`):
 CRUD de los 4 tipos de plan, invitar amigos existentes (sin link todavía),
@@ -69,16 +69,13 @@ sesión. El archivo `eslint.config.js` que `expo lint` generó automáticamente
 se descartó (no se commiteó): adoptar linting en todo el proyecto es una
 decisión aparte que no se ha pedido para v0.3.
 
-### No verificado en esta sesión (pendiente)
+### Verificado por el usuario (confirmación explícita, 2026-09-12)
 
-- **Prueba manual en Expo Go en dispositivo real** de todo el flujo: crear
-  un plan de cada tipo (Viaje/Comida/Evento/Plan casual), invitar a un
-  amigo y que le aparezca en su lista de planes, responder RSVP (Voy/Tal
-  vez/No voy con la confirmación), cambiar de opinión, editar un plan
-  (añadir/quitar invitados) y eliminarlo.
-- **Checklist de accesibilidad VoiceOver/TalkBack** sobre las 3 pantallas
-  nuevas (`plans.tsx`, `plan-form.tsx`, `plan/[id].tsx`) — recordatorio
-  explícito pedido por el usuario. No dar la fase por cerrada sin esto.
+Probado en Expo Go en dispositivo real, con dos cuentas: creación de un
+plan de cada tipo, invitación de amigo existente, flujo de RSVP completo
+(Voy/Tal vez/No voy, incluida la confirmación "¿De verdad no vienes?" con
+"Me lo pienso"/"No, no voy"), edición de invitados y eliminación de plan.
+**v0.3 queda cerrado y verificado end-to-end.**
 
 ### Checklist "antes de dar por cerrada la fase" (CLAUDE.md)
 
@@ -88,9 +85,10 @@ decisión aparte que no se ha pedido para v0.3.
       (`useFocusEffect`); los filtros de tipo/fecha persisten mientras la
       pantalla está montada (no hay caso de "vuelve y se resetea" dentro de
       la sesión de navegación).
-- [ ] **Probado en dispositivo real con Expo Go** — pendiente, ver arriba.
-- [ ] **Checklist de accesibilidad VoiceOver/TalkBack** — pendiente, ver
-      arriba.
+- [x] **Probado en dispositivo real con Expo Go** — confirmado por el
+      usuario (2026-09-12).
+- [x] **Checklist de accesibilidad VoiceOver/TalkBack** — confirmado por el
+      usuario (2026-09-12).
 
 ## v0.2 — Amigos — CERRADO 2026-09-12
 
@@ -259,8 +257,8 @@ aprobación de solicitudes, invitado sin cuenta vía enlace).
       nunca se confirmó explícitamente pese al cierre de v0.1.
 - [x] VoiceOver/TalkBack sobre `friends.tsx` (v0.2) — confirmado por el
       usuario 2026-09-12.
-- [ ] VoiceOver/TalkBack sobre `plans.tsx`, `plan-form.tsx` y `plan/[id].tsx`
-      (v0.3) — pendiente de que el usuario lo pruebe en el móvil.
+- [x] VoiceOver/TalkBack sobre `plans.tsx`, `plan-form.tsx` y `plan/[id].tsx`
+      (v0.3) — confirmado por el usuario 2026-09-12.
 
 ## Reglas que siguen aplicando (de CLAUDE.md, no repetir el resto aquí)
 
