@@ -5,6 +5,7 @@ import { Redirect, useRouter, type Href } from 'expo-router';
 // is running, so a brand-new route needs this cast until the dev server has rebuilt them once.
 const FRIENDS_ROUTE = '/friends' as Href;
 const PLANS_ROUTE = '/plans' as Href;
+const PROFILE_ROUTE = '/profile' as Href;
 import { useAuth } from '@/auth/auth-context';
 
 export default function HomeScreen() {
@@ -36,6 +37,15 @@ export default function HomeScreen() {
         style={[styles.button, styles.friendsButton]}
       >
         <Text style={styles.buttonLabel}>Amigos</Text>
+      </Pressable>
+
+      <Pressable
+        onPress={() => router.push(PROFILE_ROUTE)}
+        accessibilityRole="button"
+        accessibilityLabel="Ir a Perfil"
+        style={[styles.button, styles.friendsButton]}
+      >
+        <Text style={styles.buttonLabel}>Perfil</Text>
       </Pressable>
 
       <Pressable

@@ -145,6 +145,33 @@ export interface BalancesResult {
   settlement: SettlementTransfer[];
 }
 
+export interface PlanListItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export interface PlanList {
+  id: string;
+  title: string;
+  templateId: string | null;
+  items: PlanListItem[];
+}
+
+export interface ListTemplate {
+  id: string;
+  title: string;
+  items: string[];
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  createdAt: string;
+}
+
 export const api = {
   register: (name: string, email: string, password: string) =>
     request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
@@ -200,4 +227,33 @@ export const api = {
       { method: 'DELETE', body: JSON.stringify({ fromId, toId }) },
       token,
     ),
+  listLists: (token: string, planId: string) => request<PlanList[]>(`/plans/${planId}/lists`, {}, token),
+  createList: (token: string, planId: string, input: { title?: string; templateId?: string }) =>
+    request<PlanList>(`/plans/${planId}/lists`, { method: 'POST', body: JSON.stringify(input) }, token),
+  deleteList: (token: string, planId: string, listId: string) =>
+    request<{ success: true }>(`/plans/${planId}/lists/${listId}`, { method: 'DELETE' }, token),
+  addListItem: (token: string, planId: string, listId: string, text: string) =>
+    request<PlanList>(`/plans/${planId}/lists/${listId}/items`, { method: 'POST', body: JSON.stringify({ text }) }, token),
+  updateListItem: (token: string, planId: string, listId: string, itemId: string, done: boolean) =>
+    request<PlanList>(
+      `/plans/${planId}/lists/${listId}/items/${itemId}`,
+      { method: 'PATCH', body: JSON.stringify({ done }) },
+      token,
+    ),
+  deleteListItem: (token: string, planId: string, listId: string, itemId: string) =>
+    request<PlanList>(`/plans/${planId}/lists/${listId}/items/${itemId}`, { method: 'DELETE' }, token),
+  saveListAsTemplate: (token: string, planId: string, listId: string) =>
+    request<PlanList>(`/plans/${planId}/lists/${listId}/template`, { method: 'POST' }, token),
+  unsaveListTemplate: (token: string, planId: string, listId: string) =>
+    request<PlanList>(`/plans/${planId}/lists/${listId}/template`, { method: 'DELETE' }, token),
+  listTemplates: (token: string) => request<ListTemplate[]>('/list-templates', {}, token),
+  createListTemplate: (token: string, input: { title: string; items: string[] }) =>
+    request<ListTemplate>('/list-templates', { method: 'POST', body: JSON.stringify(input) }, token),
+  updateListTemplate: (token: string, templateId: string, input: { title?: string; items?: string[] }) =>
+    request<ListTemplate>(`/list-templates/${templateId}`, { method: 'PATCH', body: JSON.stringify(input) }, token),
+  deleteListTemplate: (token: string, templateId: string) =>
+    request<{ success: true }>(`/list-templates/${templateId}`, { method: 'DELETE' }, token),
+  listMessages: (token: string, planId: string) => request<ChatMessage[]>(`/plans/${planId}/messages`, {}, token),
+  sendMessage: (token: string, planId: string, content: string) =>
+    request<ChatMessage>(`/plans/${planId}/messages`, { method: 'POST', body: JSON.stringify({ content }) }, token),
 };

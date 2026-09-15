@@ -8,6 +8,9 @@ import { UsersModule } from "./users/users.module";
 import { FriendshipsModule } from "./friendships/friendships.module";
 import { PlansModule } from "./plans/plans.module";
 import { ExpensesModule } from "./expenses/expenses.module";
+import { ListsModule } from "./lists/lists.module";
+import { ListTemplatesModule } from "./list-templates/list-templates.module";
+import { ChatModule } from "./chat/chat.module";
 
 @Module({
   imports: [
@@ -19,6 +22,9 @@ import { ExpensesModule } from "./expenses/expenses.module";
     FriendshipsModule,
     PlansModule,
     ExpensesModule,
+    ListsModule,
+    ListTemplatesModule,
+    ChatModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

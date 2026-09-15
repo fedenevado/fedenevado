@@ -5,8 +5,10 @@ import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type Plan, type RsvpStatus } from '@/api/client';
 import { formatPlanDate, planTypeColor, planTypeLabel } from '@/plans/plan-types';
 import { ExpensesTab } from '@/plans/expenses-tab';
+import { ListsTab } from '@/plans/lists-tab';
+import { ChatTab } from '@/plans/chat-tab';
 
-type DetailTab = 'detalles' | 'gastos';
+type DetailTab = 'detalles' | 'chat' | 'listas' | 'gastos';
 
 const RSVP_LABEL: Record<RsvpStatus, string> = {
   pending: 'Sin responder',
@@ -219,6 +221,8 @@ export default function PlanDetailScreen() {
         {(
           [
             { key: 'detalles', label: 'Detalles' },
+            { key: 'chat', label: 'Chat' },
+            { key: 'listas', label: 'Listas' },
             { key: 'gastos', label: 'Gastos' },
           ] as const
         ).map((t) => {
@@ -251,6 +255,10 @@ export default function PlanDetailScreen() {
           myUserId={user.id}
           confirmedParticipants={plan.participants.filter((p) => p.rsvpStatus === 'yes' && p.userId)}
         />
+      ) : tab === 'listas' ? (
+        <ListsTab token={token} planId={plan.id} />
+      ) : tab === 'chat' ? (
+        <ChatTab token={token} planId={plan.id} myUserId={user.id} />
       ) : (
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.typeBadgeRow}>
