@@ -1,6 +1,213 @@
 # Progreso — Cantixplora
 
-## v0.4 — Gastos — EN CURSO, pendiente de verificación manual (2026-09-12)
+## Pendiente aplazado conscientemente (no es bug, no es "hecho a medias")
+
+- **Recuperación de contraseña — envío de email.** Implementada en código
+  de punta a punta (backend: `POST /auth/forgot-password` /
+  `POST /auth/reset-password`; mobile: `forgot-password.tsx` /
+  `reset-password.tsx`) y verificada funcionando correctamente a nivel de
+  lógica — confirmado con logs reales del contenedor de Auth (gotrue) y
+  curl contra el backend: la llamada a `resetPasswordForEmail` responde
+  `200 {"success":true}` y gotrue procesa la petición
+  (`user_recovery_requested`, `status:200`). Lo que no funciona es el
+  envío real del email, porque el servicio de Auth self-hosted (Coolify)
+  no tiene ningún proveedor SMTP configurado (`GOTRUE_SMTP_HOST` y
+  variables relacionadas, vacías). Decisión explícita del usuario
+  (2026-09-14): aplazar la configuración de un proveedor SMTP (Resend) a
+  más adelante, no es prioritario ahora. **No tratar esto como bloqueante
+  en ninguna fase futura del roadmap.** Retomar antes del lanzamiento.
+- **Notificación de "nuevo mensaje" en el chat.** El schema ya tiene
+  `NotificationType.new_message` previsto, y el patrón ya existe (se usó
+  para `expense_settled` en v0.4). Decisión explícita del usuario
+  (2026-09-14): no crear esta `Notification` todavía al enviar un mensaje
+  — se aplaza a v1.0, cuando se construya el centro de notificaciones de
+  verdad, junto con el diseño de cómo se agrupan/marcan como leídas (no
+  tiene sentido diseñar eso a ciegas, mensaje a mensaje, sin la pantalla
+  real). **No tratar esto como bloqueante en v0.5 ni en fases futuras.**
+
+## v0.5 — Chat y Listas — CERRADO (funcional) 2026-09-15, accesibilidad pendiente
+
+Alcance acordado con el usuario, dividido en dos bloques de trabajo:
+
+**Bloque 1 — Listas + Plantillas**: CRUD de listas y elementos por plan
+(crear lista, añadir/marcar/eliminar elemento, eliminar lista con
+confirmación), guardar/dejar de guardar una lista como plantilla desde el
+propio plan, y gestor de plantillas completo (crear desde cero, editar,
+eliminar) accesible desde una nueva pantalla mínima `profile.tsx` (no
+existía ninguna pantalla de Perfil todavía). Borrar una plantilla no
+afecta a las listas ya creadas a partir de ella (solo desenlaza
+`templateId`) — así se comporta el prototipo. `docs/schema.prisma` ya
+tenía `List`/`ListItem`/`ListTemplate`/`ListTemplateItem`: **sin cambios
+de modelo de datos, sin migración nueva.**
+
+**Bloque 2 — Chat**: mensajes por plan vía REST + polling en el cliente
+(~4s, solo con la pestaña en primer plano) — sin Socket.io en esta
+pasada, decisión explícita del usuario ("no hace falta WebSockets
+sofisticados todavía"). Accesibilidad: los mensajes entrantes se anuncian
+con `accessibilityLiveRegion="polite"` (nunca "assertive"), sin
+interrumpir lectura en curso — requisito explícito del usuario antes de
+cerrar esta fase. Notificación `new_message` aplazada conscientemente
+(ver sección al principio de este documento).
+
+Reglas de pertenencia en ambos bloques (mismo criterio que Gastos v0.4):
+leer (listas o mensajes) requiere ser participante del plan; escribir
+(crear/editar/borrar lista o elemento, enviar mensaje) requiere estar
+confirmado (`rsvpStatus: yes`).
+
+### Bloque 1 — Listas + Plantillas: implementado, pendiente de tu prueba en Expo Go
+
+- **Backend**: `apps/backend/src/lists/` (`ListsModule`/`Controller`/`Service`,
+  bajo `plans/:planId/lists`) y `apps/backend/src/list-templates/`
+  (`ListTemplatesModule`/`Controller`/`Service`, bajo `/list-templates`,
+  a nivel de usuario). Endpoints: `GET/POST /plans/:planId/lists`,
+  `DELETE /plans/:planId/lists/:listId`, `POST/PATCH/DELETE
+  .../lists/:listId/items[/:itemId]`, `POST/DELETE
+  .../lists/:listId/template` (guardar/dejar de guardar como plantilla),
+  `GET/POST /list-templates`, `PATCH/DELETE /list-templates/:id`. Borrar
+  una plantilla desenlaza (`templateId: null`) cualquier lista que la
+  usara, sin borrarla — verificado. Si la plantilla enlazada a una lista
+  es de otro participante del plan, solo su dueño puede desenlazarla
+  (`ForbiddenException`) — caso no cubierto por el prototipo (ahí es
+  monousuario), decisión tomada en esta sesión. Tests unitarios
+  (`lists.service.spec.ts`, `list-templates.service.spec.ts`) con Prisma
+  mockeado.
+- **Mobile**: `src/plans/lists-tab.tsx` (nueva pestaña "Listas" en
+  `plan/[id].tsx`), `src/app/list-templates.tsx` (gestor completo: crear,
+  editar, borrar con confirmación, expandir para ver elementos), y
+  `src/app/profile.tsx` — **pantalla nueva, no existía ninguna de Perfil
+  todavía** — con un botón "Perfil" en Home y, dentro, la fila "Plantillas
+  de listas" que lleva al gestor. Perfil se mantuvo mínimo (nombre + email
+  de solo lectura): editar perfil no estaba en el alcance pedido.
+
+Evidencia:
+```
+$ pnpm --filter backend test
+Test Suites: 7 passed, 7 total
+Tests:       63 passed, 63 total
+
+$ pnpm --filter backend build
+> nest build   (sin errores)
+
+$ cd apps/backend && npx prisma validate
+The schema at prisma/schema.prisma is valid 🚀
+
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json
+(sin salida — sin errores de tipos)
+```
+
+Escenario real contra el backend/DB en vivo, con una cuenta QA desechable
+(creada y borrada en esta sesión, sin rastro): crear lista vacía, crear
+sin título ni plantilla → `400`, añadir 2 elementos, marcar uno hecho,
+guardar la lista como plantilla, volver a intentar guardarla → `400` (ya
+guardada), crear una segunda lista desde esa plantilla, borrar la lista
+original → la plantilla sigue existiendo y la segunda lista sigue intacta,
+borrar la plantilla → la segunda lista sigue intacta, solo con
+`templateId: null`, borrar un elemento inexistente → `404`. Todo se
+comportó como se esperaba.
+
+Nota de proceso: al ejecutar `npx expo lint` puntualmente (para revisar
+los archivos nuevos, como en sesiones anteriores) instaló `eslint`/
+`eslint-config-expo` en `package.json` pero falló al ejecutar
+("Cannot find module 'eslint'", problema de resolución de módulos con
+pnpm en este entorno) sin llegar a lintar nada. Revertido por completo
+(`package.json`, `pnpm-lock.yaml` resincronizados con `pnpm install`,
+`eslint.config.js` generado borrado) — no se comprometió, igual que en
+v0.3/v0.4. El `tsc --noEmit` limpio y la revisión manual de hooks
+(ningún hook condicional) cubren esta sesión en su lugar.
+
+### Verificado por el usuario en dispositivo real (confirmación explícita, 2026-09-15)
+
+"He probado Chat y Listas en dispositivo real (chat entre dos cuentas,
+plantillas de listas gestionables desde Perfil) — todo funciona
+correctamente." Cubre el flujo funcional completo de este bloque en Expo
+Go. **El flujo funcional de Listas + Plantillas queda cerrado y
+verificado end-to-end.**
+
+Al preguntar explícitamente si esto incluía también el checklist de
+accesibilidad VoiceOver/TalkBack, el usuario confirmó que **no** — solo
+funcional. Queda pendiente, ver "Deuda de accesibilidad arrastrada" al
+final de este documento (mismo criterio que v0.4: no marcar como resuelto
+sin confirmación explícita).
+
+### Bloque 2 — Chat: implementado, pendiente de tu prueba en Expo Go
+
+- **Backend**: `apps/backend/src/chat/` (`ChatModule`/`Controller`/
+  `Service`, bajo `plans/:planId/messages`). `GET` requiere solo ser
+  participante del plan (igual que Gastos/Listas); `POST` requiere estar
+  confirmado (`rsvpStatus: yes`) y tiene rate-limit propio (20/min) además
+  del global. El contenido se recorta en el servidor antes de guardar y
+  antes de comprobar que no está vacío. Sin Socket.io en esta pasada —
+  decisión ya tomada al planificar este bloque. Tests unitarios
+  (`chat.service.spec.ts`) con Prisma mockeado.
+- **Mobile**: `src/plans/chat-tab.tsx`, nueva pestaña "Chat" en
+  `plan/[id].tsx`. Polling cada 4s mientras la pestaña está montada
+  (se detiene sola al cambiar de pestaña, porque el componente se
+  desmonta) y además se pausa/reanuda con `AppState` cuando la app pasa a
+  segundo plano — para no gastar datos/batería ni chocar con el
+  rate-limit sin necesidad. Auto-scroll al final al recibir mensajes.
+  **Accesibilidad de mensajes entrantes** (requisito explícito del
+  usuario antes de cerrar esta fase): un `Text` con
+  `accessibilityLiveRegion="polite"` (nunca "assertive") se actualiza solo
+  cuando llegan mensajes nuevos de otra persona (no de una misma, no en la
+  carga inicial), así VoiceOver/TalkBack lo anuncia sin interrumpir la
+  lectura en curso — pendiente de que el usuario lo confirme con el
+  lector de pantalla real, ver checklist abajo.
+
+Evidencia:
+```
+$ pnpm --filter backend test
+Test Suites: 8 passed, 8 total
+Tests:       68 passed, 68 total
+
+$ pnpm --filter backend build   → sin errores
+$ npx prisma validate           → válido, sin migración
+$ cd apps/mobile && npx tsc --noEmit → sin errores
+```
+
+**Dos cuentas reales mandándose mensajes entre sí**, tal como pediste —
+hecho con dos cuentas QA desechables (creadas y borradas en esta sesión,
+sin rastro) contra el backend real: mensaje vacío tras recortar espacios
+→ `400`; A envía "Hola B!" → B lo ve con una petición GET (equivalente a
+lo que hace el polling); B responde "Hola A, todo listo!" → A ve ambos
+mensajes en orden cronológico correcto, con el nombre de quien envía cada
+uno. La autorización (solo confirmados envían, cualquier participante
+lee) está cubierta por los tests unitarios con Prisma mockeado
+(`ForbiddenException` si no confirmado, lectura permitida en `pending`).
+
+Nota de proceso: a mitad de esta verificación, el proceso NestJS de la
+sesión tmux dejó de responder con las rutas nuevas (`Cannot POST
+/plans/.../messages`, 404) aunque el código compilaba limpio por fuera —
+mismo síntoma de caché incremental de TypeScript corrupta que ya apareció
+en la sesión anterior (probablemente por el `pnpm install` de esta
+sesión). Solución: `rm -rf apps/backend/dist` + reinicio limpio del
+proceso en la ventana `backend` de tmux. Tras el reinicio arrancó sin
+ningún error y con las rutas de Chat mapeadas correctamente
+(`ChatController {/plans/:planId/messages}`); el resto de la verificación
+se hizo ya sobre ese proceso limpio.
+
+### Verificado por el usuario en dispositivo real (confirmación explícita, 2026-09-15)
+
+"He probado Chat [...] en dispositivo real (chat entre dos cuentas [...])
+— todo funciona correctamente." Cubre el envío/recepción de mensajes
+entre dos cuentas reales en Expo Go. **El flujo funcional de Chat queda
+cerrado y verificado end-to-end.**
+
+Confirmado explícitamente que esto **no** incluyó el checklist de
+accesibilidad VoiceOver/TalkBack — en concreto, sigue sin confirmarse que
+un mensaje nuevo se anuncia sin cortar la lectura en curso de otra cosa en
+pantalla, que era el requisito explícito del usuario para este bloque.
+Ver "Deuda de accesibilidad arrastrada" al final de este documento.
+
+### Cierre de v0.5
+
+Ambos bloques (Listas + Plantillas, y Chat) verificados funcionalmente por
+el usuario en dispositivo real el 2026-09-15 (ver secciones de cada
+bloque arriba). La accesibilidad VoiceOver/TalkBack de las 4 pantallas
+nuevas (`lists-tab.tsx`, `list-templates.tsx`, `profile.tsx`,
+`chat-tab.tsx`) queda como deuda pendiente, no bloqueante para seguir con
+v0.6, pero sin marcar como resuelta sin confirmación explícita.
+
+## v0.4 — Gastos — CERRADO (funcional) 2026-09-14, accesibilidad pendiente
 
 Alcance acordado con el usuario: Expense/ExpenseSplit con reparto parcial
 (selección explícita de participantes), balances por plan con reparto
@@ -91,24 +298,57 @@ botones/chips de la pestaña Gastos que habían quedado por debajo del
 mínimo táctil (revisión de accesibilidad propia antes de pedir la prueba
 con lector de pantalla).
 
-### No verificado en esta sesión (pendiente)
+### Verificado contra el backend/DB reales en sesión posterior (2026-09-14)
 
-- **Prueba manual en Expo Go con al menos 3 cuentas reales**: añadir
-  gastos con reparto parcial (no todos), comprobar balances coherentes en
-  las 3 cuentas, editar un gasto y ver los balances recalcularse, cerrar
-  cuentas (con la confirmación), marcar una transferencia como pagada
-  desde una de las dos partes implicadas y comprobarlo desde la otra,
-  reabrir cuentas y volver a editar. Pasos detallados en la respuesta de
-  esta sesión.
-- Verificación de que una cuenta **no implicada** en una transferencia no
-  puede marcarla como pagada (la haré yo contra el backend real una vez
-  exista un caso de prueba).
-- Verificación de la `Notification` creada al marcar como pagada (la haré
-  yo por `psql` contra la base de datos real, tras la prueba manual del
-  usuario).
+Escenario de extremo a extremo con 3 cuentas desechables creadas y
+eliminadas en esta misma sesión (`qa-expenses-a/b/c@example.com`, borradas
+de Supabase Auth y de `users`/`friendships` al terminar — no queda rastro):
+plan con A de owner, B y C invitados y confirmados (`rsvpStatus: yes`),
+gasto de 30€ pagado por A con reparto parcial (solo A y B, C fuera),
+balance correcto (`A: +15, B: -15, C: 0`).
+
+- **Autorización de "marcar como pagada"**: C (no implicado en la
+  transferencia B→A) recibe `403 Forbidden` con mensaje específico
+  ("Solo las personas implicadas en la transferencia pueden marcarla como
+  pagada."), tanto antes como después de cerrar cuentas. B (sí implicado)
+  recibe `403` distinto antes de cerrar cuentas ("Cierra las cuentas antes
+  de marcar transferencias como pagadas.") y `200 OK` con
+  `settlement[0].paid: true` después de cerrarlas. **Confirmado.**
+- **Notificación al marcar como pagada**: verificado por `psql` contra la
+  base de datos real — se creó una fila en `notifications` con
+  `type = expense_settled`, `user_id` = A (quien cobró), `actor_id` = B
+  (quien pagó), `plan_id` correcto, `read = false`. **Confirmado.**
+- Hallazgo menor de esquema (no corregido, fuera de alcance de esta
+  sesión): `notifications.plan_id` no tiene FK con cascade — al borrar un
+  plan, sus notificaciones no se borran solas (quedan con `plan_id`
+  apuntando a un plan que ya no existe). No afecta a v0.4; anotarlo para
+  cuando se implemente la pantalla de notificaciones (v0.9) — un enlace
+  "ir al plan" desde una notificación así tendría que manejar el caso de
+  plan borrado.
+
+### Verificado por el usuario en dispositivo real (confirmación explícita, 2026-09-14)
+
+"He probado v0.4 (Gastos) en dispositivo real con al menos 3 participantes
+reales repartiendo gastos, balances correctos, cerrar cuentas y marcar
+pagos — todo funciona correctamente." Cubre el flujo funcional completo en
+Expo Go. **El flujo funcional de v0.4 queda cerrado y verificado
+end-to-end.**
+
+Al preguntar explícitamente si esta prueba incluía también el checklist de
+accesibilidad VoiceOver/TalkBack sobre la pestaña Gastos, el usuario
+describió solo la prueba funcional (participantes, balances, cerrar
+cuentas, marcar pagos) sin mencionar el lector de pantalla — se interpreta
+como **no confirmado todavía**, no como un "sí" implícito. Añadido a la
+deuda de accesibilidad arrastrada (ver sección al final de este documento),
+siguiendo el mismo criterio que ya arrastra la deuda de v0.1: no marcar
+como resuelto sin confirmación explícita.
+
+### No verificado todavía (requiere el dispositivo del usuario)
+
 - **Checklist de accesibilidad VoiceOver/TalkBack** sobre la pestaña
-  Gastos — recordatorio explícito pedido por el usuario. No dar la fase
-  por cerrada sin esto.
+  Gastos — sigue pendiente de confirmación explícita (ver arriba). No es
+  bloqueante para seguir con v0.5, pero no se debe dar por resuelto sin que
+  el usuario lo confirme.
 
 ### Checklist "antes de dar por cerrada la fase" (CLAUDE.md)
 
@@ -117,9 +357,10 @@ con lector de pantalla).
 - [x] Filtros/estado de UI: no aplica gran cosa aquí (no hay filtros
       nuevos); el formulario de gasto se resetea correctamente tras
       guardar/cancelar.
-- [ ] **Probado en dispositivo real con Expo Go** — pendiente, ver arriba.
-- [ ] **Checklist de accesibilidad VoiceOver/TalkBack** — pendiente, ver
-      arriba.
+- [x] **Probado en dispositivo real con Expo Go** — confirmado por el
+      usuario (2026-09-14).
+- [ ] **Checklist de accesibilidad VoiceOver/TalkBack** — no confirmado
+      explícitamente, ver arriba.
 
 ## v0.3 — Planes (núcleo) — CERRADO 2026-09-12
 
@@ -380,6 +621,17 @@ aprobación de solicitudes, invitado sin cuenta vía enlace).
       usuario 2026-09-12.
 - [x] VoiceOver/TalkBack sobre `plans.tsx`, `plan-form.tsx` y `plan/[id].tsx`
       (v0.3) — confirmado por el usuario 2026-09-12.
+- [ ] VoiceOver/TalkBack sobre `expenses-tab.tsx` (v0.4) — sigue pendiente;
+      la confirmación del usuario 2026-09-14 fue solo de la prueba
+      funcional, no mencionó el lector de pantalla.
+- [ ] VoiceOver/TalkBack sobre `lists-tab.tsx`, `list-templates.tsx` y
+      `profile.tsx` (v0.5) — sigue pendiente; confirmado explícitamente
+      por el usuario 2026-09-15 que su prueba fue solo funcional.
+- [ ] VoiceOver/TalkBack sobre `chat-tab.tsx` (v0.5) — sigue pendiente,
+      incluido el requisito específico de que un mensaje nuevo se anuncie
+      (`accessibilityLiveRegion="polite"`) sin cortar la lectura en curso;
+      confirmado explícitamente por el usuario 2026-09-15 que su prueba
+      fue solo funcional.
 
 ## Reglas que siguen aplicando (de CLAUDE.md, no repetir el resto aquí)
 
