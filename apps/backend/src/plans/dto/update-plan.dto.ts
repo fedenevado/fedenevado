@@ -11,9 +11,9 @@ import {
   Matches,
   MaxLength,
 } from "class-validator";
-import { PlanTypeDto } from "./create-plan.dto";
 
 const PLAN_TYPES = ["viaje", "comida", "evento", "plan_casual"] as const;
+type PlanTypeDto = (typeof PLAN_TYPES)[number];
 
 export class UpdatePlanDto {
   @IsOptional()
