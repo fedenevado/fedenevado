@@ -231,6 +231,38 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+export interface ReminderShare {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface ReminderItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export interface Reminder {
+  id: string;
+  ownerId: string;
+  ownerName: string;
+  date: string;
+  title: string;
+  time: string | null;
+  done: boolean;
+  sharedWith: ReminderShare[];
+  items: ReminderItem[];
+}
+
+export interface ReminderInput {
+  title: string;
+  date: string;
+  time?: string;
+  sharedWith?: string[];
+  items?: string[];
+}
+
 export const api = {
   register: (name: string, email: string, password: string) =>
     request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
@@ -327,4 +359,19 @@ export const api = {
   listMessages: (token: string, planId: string) => request<ChatMessage[]>(`/plans/${planId}/messages`, {}, token),
   sendMessage: (token: string, planId: string, content: string) =>
     request<ChatMessage>(`/plans/${planId}/messages`, { method: 'POST', body: JSON.stringify({ content }) }, token),
+  listReminders: (token: string) => request<Reminder[]>('/reminders', {}, token),
+  createReminder: (token: string, input: ReminderInput) =>
+    request<Reminder>('/reminders', { method: 'POST', body: JSON.stringify(input) }, token),
+  updateReminder: (token: string, id: string, input: Partial<Omit<ReminderInput, 'items'>>) =>
+    request<Reminder>(`/reminders/${id}`, { method: 'PATCH', body: JSON.stringify(input) }, token),
+  deleteReminder: (token: string, id: string) =>
+    request<{ success: true }>(`/reminders/${id}`, { method: 'DELETE' }, token),
+  setReminderDone: (token: string, id: string, done: boolean) =>
+    request<Reminder>(`/reminders/${id}/done`, { method: 'PATCH', body: JSON.stringify({ done }) }, token),
+  addReminderItem: (token: string, id: string, text: string) =>
+    request<Reminder>(`/reminders/${id}/items`, { method: 'POST', body: JSON.stringify({ text }) }, token),
+  updateReminderItem: (token: string, id: string, itemId: string, done: boolean) =>
+    request<Reminder>(`/reminders/${id}/items/${itemId}`, { method: 'PATCH', body: JSON.stringify({ done }) }, token),
+  deleteReminderItem: (token: string, id: string, itemId: string) =>
+    request<Reminder>(`/reminders/${id}/items/${itemId}`, { method: 'DELETE' }, token),
 };

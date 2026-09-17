@@ -11,6 +11,7 @@ import { ExpensesModule } from "./expenses/expenses.module";
 import { ListsModule } from "./lists/lists.module";
 import { ListTemplatesModule } from "./list-templates/list-templates.module";
 import { ChatModule } from "./chat/chat.module";
+import { RemindersModule } from "./reminders/reminders.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ChatModule } from "./chat/chat.module";
     ListsModule,
     ListTemplatesModule,
     ChatModule,
+    RemindersModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

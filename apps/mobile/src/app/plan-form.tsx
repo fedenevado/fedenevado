@@ -24,7 +24,11 @@ function planHref(id: string): Href {
 
 export default function PlanFormScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, initialDate, initialInvitedIds } = useLocalSearchParams<{
+    id?: string;
+    initialDate?: string;
+    initialInvitedIds?: string;
+  }>();
   const isEdit = !!id;
   const { token } = useAuth();
 
@@ -61,6 +65,11 @@ export default function PlanFormScreen() {
         setLocation(plan.location ?? '');
         const friendIds = new Set(friendList.map((f) => f.id));
         setInvited(plan.participants.filter((p) => p.userId && friendIds.has(p.userId)).map((p) => p.userId!));
+      } else {
+        // Preselección al crear desde el Calendario/Inicio (fecha del día
+        // tocado) o desde "Buscar hueco común" (fecha + amigos ya elegidos).
+        if (initialDate) setStartDate(initialDate);
+        if (initialInvitedIds) setInvited(initialInvitedIds.split(',').filter(Boolean));
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.');
