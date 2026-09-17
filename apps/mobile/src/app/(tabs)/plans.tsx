@@ -1,9 +1,27 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type Plan, type PlanType } from '@/api/client';
-import { PLAN_TYPE_OPTIONS, formatPlanDate, planTypeColor, planTypeLabel } from '@/plans/plan-types';
+import {
+  PLAN_TYPE_OPTIONS,
+  dateToIsoDate,
+  formatPlanDate,
+  isoDateToDate,
+  planTypeColor,
+  planTypeLabel,
+} from '@/plans/plan-types';
+import { PickerField } from '@/plans/picker-field';
 
 const NEW_PLAN_ROUTE = '/plan-form' as Href;
 
@@ -25,6 +43,7 @@ const RSVP_LABEL: Record<string, string> = {
 export default function PlansScreen() {
   const router = useRouter();
   const { token, user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,18 +139,11 @@ export default function PlansScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Volver"
-          style={styles.backButton}
-        >
-          <Text style={styles.backLabel}>‹ Volver</Text>
-        </Pressable>
-        <Text style={styles.title}>Mis planes</Text>
-      </View>
+    <KeyboardAvoidingView
+      style={[styles.container, { paddingTop: insets.top + 20 }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <Text style={styles.title}>Mis planes</Text>
 
       <View style={styles.actionsRow}>
         <Pressable
@@ -174,22 +186,31 @@ export default function PlansScreen() {
               );
             })}
           </View>
-          <Text style={styles.filterLabel}>Rango de fechas (AAAA-MM-DD)</Text>
+          <Text style={styles.filterLabel}>Rango de fechas</Text>
           <View style={styles.dateRow}>
-            <TextInput
-              value={dateFrom}
-              onChangeText={setDateFrom}
-              placeholder="Desde"
-              accessibilityLabel="Filtrar desde fecha"
-              style={styles.dateInput}
-            />
-            <TextInput
-              value={dateTo}
-              onChangeText={setDateTo}
-              placeholder="Hasta"
-              accessibilityLabel="Filtrar hasta fecha"
-              style={styles.dateInput}
-            />
+            <View style={styles.dateField}>
+              <PickerField
+                mode="date"
+                value={dateFrom ? isoDateToDate(dateFrom) : null}
+                placeholder="Desde"
+                accessibilityLabel="Filtrar desde fecha"
+                formatLabel={(d) => d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                onChange={(d) => setDateFrom(dateToIsoDate(d))}
+                onClear={() => setDateFrom('')}
+              />
+            </View>
+            <View style={styles.dateField}>
+              <PickerField
+                mode="date"
+                value={dateTo ? isoDateToDate(dateTo) : null}
+                minimumDate={dateFrom ? isoDateToDate(dateFrom) : undefined}
+                placeholder="Hasta"
+                accessibilityLabel="Filtrar hasta fecha"
+                formatLabel={(d) => d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                onChange={(d) => setDateTo(dateToIsoDate(d))}
+                onClear={() => setDateTo('')}
+              />
+            </View>
           </View>
           {activeFilterCount > 0 && (
             <Pressable
@@ -213,7 +234,7 @@ export default function PlansScreen() {
       {isLoading ? (
         <ActivityIndicator style={styles.loading} accessibilityLabel="Cargando planes" />
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           {pending.length > 0 && (
             <>
               <Text style={[styles.sectionLabel, styles.sectionLabelPending]}>Pendientes ({pending.length})</Text>
@@ -236,16 +257,13 @@ export default function PlansScreen() {
           )}
         </ScrollView>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F2', padding: 20, paddingTop: 56 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  backButton: { minHeight: 44, minWidth: 44, justifyContent: 'center' },
-  backLabel: { fontSize: 15, color: '#161B2E', fontWeight: '600' },
-  title: { fontSize: 20, fontWeight: '700', color: '#161B2E', marginLeft: 4 },
+  container: { flex: 1, backgroundColor: '#F5F5F2', padding: 20 },
+  title: { fontSize: 20, fontWeight: '700', color: '#161B2E', marginBottom: 12 },
   actionsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   filterButton: {
     minHeight: 44,
@@ -292,16 +310,7 @@ const styles = StyleSheet.create({
   chipLabel: { fontSize: 12, fontWeight: '600', color: '#161B2E' },
   chipLabelActive: { color: '#fff' },
   dateRow: { flexDirection: 'row', gap: 8 },
-  dateInput: {
-    flex: 1,
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: '#DCDCD8',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    fontSize: 12,
-    backgroundColor: '#fff',
-  },
+  dateField: { flex: 1 },
   clearFilters: { minHeight: 44, alignItems: 'flex-end', justifyContent: 'center', marginTop: 8 },
   clearFiltersLabel: { fontSize: 12, fontWeight: '700', color: '#FF5A3C' },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
