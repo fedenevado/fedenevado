@@ -12,7 +12,18 @@ function buildService(overrides: {
   participantUpdate?: jest.Mock;
   participantDeleteMany?: jest.Mock;
   participantCreateMany?: jest.Mock;
+  participantCreate?: jest.Mock;
   notificationCreateMany?: jest.Mock;
+  notificationCreate?: jest.Mock;
+  invitationFindFirst?: jest.Mock;
+  invitationFindUnique?: jest.Mock;
+  invitationCreate?: jest.Mock;
+  invitationUpdate?: jest.Mock;
+  joinRequestFindFirst?: jest.Mock;
+  joinRequestFindMany?: jest.Mock;
+  joinRequestFindUnique?: jest.Mock;
+  joinRequestCreate?: jest.Mock;
+  joinRequestUpdate?: jest.Mock;
 }) {
   const prisma: any = {
     plan: {
@@ -30,10 +41,26 @@ function buildService(overrides: {
       update: overrides.participantUpdate ?? jest.fn(),
       deleteMany: overrides.participantDeleteMany ?? jest.fn(),
       createMany: overrides.participantCreateMany ?? jest.fn(),
+      create: overrides.participantCreate ?? jest.fn().mockResolvedValue({}),
     },
     notification: {
       createMany: overrides.notificationCreateMany ?? jest.fn(),
+      create: overrides.notificationCreate ?? jest.fn().mockResolvedValue({}),
     },
+    invitation: {
+      findFirst: overrides.invitationFindFirst ?? jest.fn(),
+      findUnique: overrides.invitationFindUnique ?? jest.fn(),
+      create: overrides.invitationCreate ?? jest.fn(),
+      update: overrides.invitationUpdate ?? jest.fn().mockResolvedValue({}),
+    },
+    joinRequest: {
+      findFirst: overrides.joinRequestFindFirst ?? jest.fn(),
+      findMany: overrides.joinRequestFindMany ?? jest.fn(),
+      findUnique: overrides.joinRequestFindUnique ?? jest.fn(),
+      create: overrides.joinRequestCreate ?? jest.fn().mockResolvedValue({}),
+      update: overrides.joinRequestUpdate ?? jest.fn().mockResolvedValue({}),
+    },
+    $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
   };
   return { service: new PlansService(prisma), prisma };
 }
@@ -226,6 +253,224 @@ describe("PlansService", () => {
         where: { id: "p1" },
         data: { rsvpStatus: "no" },
       });
+    });
+  });
+
+  describe("getOrCreateInvitation", () => {
+    it("lanza ForbiddenException si quien pide el enlace no es el owner", async () => {
+      const { service } = buildService({ planFindUnique: jest.fn().mockResolvedValue(samplePlan()) });
+      await expect(service.getOrCreateInvitation("user-2", "plan-1")).rejects.toThrow(ForbiddenException);
+    });
+
+    it("devuelve el token existente en vez de crear uno nuevo (idempotente)", async () => {
+      const invitationFindFirst = jest.fn().mockResolvedValue({ token: "existing-token" });
+      const invitationCreate = jest.fn();
+      const { service, prisma } = buildService({
+        planFindUnique: jest.fn().mockResolvedValue(samplePlan()),
+        invitationFindFirst,
+        invitationCreate,
+      });
+
+      const result = await service.getOrCreateInvitation("user-1", "plan-1");
+
+      expect(result).toEqual({ token: "existing-token" });
+      expect(prisma.invitation.create).not.toHaveBeenCalled();
+    });
+
+    it("crea una invitación nueva si no hay ninguna activa", async () => {
+      const invitationFindFirst = jest.fn().mockResolvedValue(null);
+      const invitationCreate = jest.fn().mockResolvedValue({ token: "new-token" });
+      const { service, prisma } = buildService({
+        planFindUnique: jest.fn().mockResolvedValue(samplePlan()),
+        invitationFindFirst,
+        invitationCreate,
+      });
+
+      const result = await service.getOrCreateInvitation("user-1", "plan-1");
+
+      expect(result).toEqual({ token: "new-token" });
+      expect(prisma.invitation.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ planId: "plan-1", createdBy: "user-1" }) }),
+      );
+    });
+  });
+
+  describe("joinViaInvitationToken", () => {
+    it("lanza NotFoundException si el token no existe, está revocado o caducado", async () => {
+      const { service } = buildService({ invitationFindUnique: jest.fn().mockResolvedValue(null) });
+      await expect(service.joinViaInvitationToken("user-2", "bad-token")).rejects.toThrow(NotFoundException);
+    });
+
+    it("devuelve already_participant sin crear nada si ya es participante", async () => {
+      const invitation = { id: "inv-1", planId: "plan-1", revoked: false, expiresAt: null, plan: samplePlan() };
+      const { service, prisma } = buildService({
+        invitationFindUnique: jest.fn().mockResolvedValue(invitation),
+        participantFindFirst: jest.fn().mockResolvedValue({ id: "p2" }),
+      });
+
+      const result = await service.joinViaInvitationToken("user-2", "token-1");
+
+      expect(result).toEqual({ status: "already_participant", planId: "plan-1" });
+      expect(prisma.planParticipant.create).not.toHaveBeenCalled();
+    });
+
+    it("une directo a un plan público e incrementa usesCount", async () => {
+      const invitation = {
+        id: "inv-1",
+        planId: "plan-1",
+        revoked: false,
+        expiresAt: null,
+        plan: samplePlan({ visibility: "publica" }),
+      };
+      const { service, prisma } = buildService({
+        invitationFindUnique: jest.fn().mockResolvedValue(invitation),
+        participantFindFirst: jest.fn().mockResolvedValue(null),
+      });
+
+      const result = await service.joinViaInvitationToken("user-2", "token-1");
+
+      expect(result).toEqual({ status: "joined", planId: "plan-1" });
+      expect(prisma.planParticipant.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ planId: "plan-1", userId: "user-2", role: "guest", rsvpStatus: "pending" }),
+        }),
+      );
+      expect(prisma.invitation.update).toHaveBeenCalledWith({
+        where: { id: "inv-1" },
+        data: { usesCount: { increment: 1 } },
+      });
+    });
+
+    it("crea una JoinRequest pendiente y notifica al owner si el plan es privado", async () => {
+      const invitation = {
+        id: "inv-1",
+        planId: "plan-1",
+        revoked: false,
+        expiresAt: null,
+        plan: samplePlan({ visibility: "privada" }),
+      };
+      const joinRequestCreate = jest.fn().mockResolvedValue({});
+      const notificationCreate = jest.fn().mockResolvedValue({});
+      const { service, prisma } = buildService({
+        invitationFindUnique: jest.fn().mockResolvedValue(invitation),
+        participantFindFirst: jest.fn().mockResolvedValue(null),
+        joinRequestFindFirst: jest.fn().mockResolvedValue(null),
+        joinRequestCreate,
+        notificationCreate,
+      });
+
+      const result = await service.joinViaInvitationToken("user-2", "token-1");
+
+      expect(result).toEqual({ status: "pending", planId: "plan-1" });
+      expect(prisma.joinRequest.create).toHaveBeenCalledWith({
+        data: { planId: "plan-1", userId: "user-2", status: "pending" },
+      });
+      expect(prisma.notification.create).toHaveBeenCalledWith({
+        data: { userId: "user-1", type: "join_request_received", planId: "plan-1", actorId: "user-2" },
+      });
+      expect(prisma.planParticipant.create).not.toHaveBeenCalled();
+    });
+
+    it("no duplica la JoinRequest si ya hay una pendiente del mismo usuario", async () => {
+      const invitation = {
+        id: "inv-1",
+        planId: "plan-1",
+        revoked: false,
+        expiresAt: null,
+        plan: samplePlan({ visibility: "privada" }),
+      };
+      const { service, prisma } = buildService({
+        invitationFindUnique: jest.fn().mockResolvedValue(invitation),
+        participantFindFirst: jest.fn().mockResolvedValue(null),
+        joinRequestFindFirst: jest.fn().mockResolvedValue({ id: "req-1" }),
+      });
+
+      const result = await service.joinViaInvitationToken("user-2", "token-1");
+
+      expect(result).toEqual({ status: "pending", planId: "plan-1" });
+      expect(prisma.joinRequest.create).not.toHaveBeenCalled();
+      expect(prisma.notification.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("listJoinRequests", () => {
+    it("lanza ForbiddenException si quien pregunta no es el owner", async () => {
+      const { service } = buildService({ planFindUnique: jest.fn().mockResolvedValue(samplePlan()) });
+      await expect(service.listJoinRequests("user-2", "plan-1")).rejects.toThrow(ForbiddenException);
+    });
+
+    it("devuelve solo las solicitudes pendientes con el nombre del solicitante", async () => {
+      const joinRequestFindMany = jest.fn().mockResolvedValue([
+        {
+          id: "req-1",
+          userId: "user-2",
+          guestName: null,
+          requestedAt: new Date("2026-09-16T10:00:00.000Z"),
+          user: { name: "Bob" },
+        },
+      ]);
+      const { service } = buildService({
+        planFindUnique: jest.fn().mockResolvedValue(samplePlan()),
+        joinRequestFindMany,
+      });
+
+      const result = await service.listJoinRequests("user-1", "plan-1");
+
+      expect(result).toEqual([
+        { id: "req-1", userId: "user-2", name: "Bob", requestedAt: "2026-09-16T10:00:00.000Z" },
+      ]);
+    });
+  });
+
+  describe("approveJoinRequest", () => {
+    it("lanza NotFoundException si la solicitud no existe, no es de este plan o ya se resolvió", async () => {
+      const { service } = buildService({
+        planFindUnique: jest.fn().mockResolvedValue(samplePlan()),
+        joinRequestFindUnique: jest.fn().mockResolvedValue(null),
+      });
+      await expect(service.approveJoinRequest("user-1", "plan-1", "req-1")).rejects.toThrow(NotFoundException);
+    });
+
+    it("crea el participante, marca la solicitud aprobada y notifica al solicitante", async () => {
+      const joinRequest = { id: "req-1", planId: "plan-1", userId: "user-2", guestName: null, status: "pending" };
+      const { service, prisma } = buildService({
+        planFindUnique: jest.fn().mockResolvedValue(samplePlan()),
+        joinRequestFindUnique: jest.fn().mockResolvedValue(joinRequest),
+      });
+
+      await service.approveJoinRequest("user-1", "plan-1", "req-1");
+
+      expect(prisma.planParticipant.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ planId: "plan-1", userId: "user-2", role: "guest", rsvpStatus: "pending" }),
+        }),
+      );
+      expect(prisma.joinRequest.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: "req-1" }, data: expect.objectContaining({ status: "approved" }) }),
+      );
+      expect(prisma.notification.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ userId: "user-2", type: "join_request_approved", planId: "plan-1", actorId: "user-1" }),
+        }),
+      );
+    });
+  });
+
+  describe("rejectJoinRequest", () => {
+    it("marca la solicitud como rechazada sin crear participante ni notificar", async () => {
+      const joinRequest = { id: "req-1", planId: "plan-1", userId: "user-2", guestName: null, status: "pending" };
+      const { service, prisma } = buildService({
+        planFindUnique: jest.fn().mockResolvedValue(samplePlan()),
+        joinRequestFindUnique: jest.fn().mockResolvedValue(joinRequest),
+      });
+
+      await service.rejectJoinRequest("user-1", "plan-1", "req-1");
+
+      expect(prisma.joinRequest.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: "req-1" }, data: expect.objectContaining({ status: "rejected" }) }),
+      );
+      expect(prisma.planParticipant.create).not.toHaveBeenCalled();
+      expect(prisma.notification.create).not.toHaveBeenCalled();
     });
   });
 });

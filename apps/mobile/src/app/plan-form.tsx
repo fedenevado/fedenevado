@@ -12,11 +12,17 @@ import {
 } from 'react-native';
 import { Redirect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
-import { api, ApiError, type Friend, type PlanType } from '@/api/client';
-import { PLAN_TYPE_OPTIONS } from '@/plans/plan-types';
-
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+import { api, ApiError, type Friend, type PlanType, type PlanVisibility } from '@/api/client';
+import {
+  PLAN_TYPE_OPTIONS,
+  dateToIsoDate,
+  dateToTimeString,
+  formatDateLabel,
+  isoDateToDate,
+  startOfToday,
+  timeStringToDate,
+} from '@/plans/plan-types';
+import { PickerField } from '@/plans/picker-field';
 
 function planHref(id: string): Href {
   return `/plan/${id}` as Href;
@@ -35,6 +41,7 @@ export default function PlanFormScreen() {
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [type, setType] = useState<PlanType>('viaje');
+  const [visibility, setVisibility] = useState<PlanVisibility>('publica');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [time, setTime] = useState('');
@@ -59,6 +66,7 @@ export default function PlanFormScreen() {
       if (plan) {
         setTitle(plan.title);
         setType(plan.type);
+        setVisibility(plan.visibility);
         setStartDate(plan.startDate);
         setEndDate(plan.endDate ?? '');
         setTime(plan.time ?? '');
@@ -91,10 +99,7 @@ export default function PlanFormScreen() {
   }
 
   function canAdvanceFromStep2() {
-    if (!DATE_RE.test(startDate)) return false;
-    if (type === 'viaje' && endDate && !DATE_RE.test(endDate)) return false;
-    if ((type === 'comida' || type === 'evento') && time && !TIME_RE.test(time)) return false;
-    return true;
+    return !!startDate;
   }
 
   async function handleSubmit() {
@@ -109,6 +114,7 @@ export default function PlanFormScreen() {
         endDate: type === 'viaje' && endDate ? endDate : undefined,
         time: (type === 'comida' || type === 'evento') && time ? time : undefined,
         location: location.trim() || undefined,
+        visibility,
         invitedFriendIds: invited,
       };
       const plan = isEdit ? await api.updatePlan(token, id!, input) : await api.createPlan(token, input);
@@ -180,6 +186,34 @@ export default function PlanFormScreen() {
                   );
                 })}
               </View>
+              <Text style={styles.label}>Visibilidad</Text>
+              <View style={styles.chipRow}>
+                {(
+                  [
+                    { value: 'publica' as const, label: 'Pública' },
+                    { value: 'privada' as const, label: 'Privada' },
+                  ]
+                ).map((o) => {
+                  const active = visibility === o.value;
+                  return (
+                    <Pressable
+                      key={o.value}
+                      onPress={() => setVisibility(o.value)}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`Visibilidad ${o.label}`}
+                      accessibilityState={{ selected: active }}
+                      style={[styles.chip, active && styles.chipActive]}
+                    >
+                      <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{o.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={styles.hint}>
+                {visibility === 'privada'
+                  ? 'Quien se una por enlace necesita tu aprobación.'
+                  : 'Quien tenga el enlace se une directamente.'}
+              </Text>
               <Pressable
                 onPress={() => setStep(2)}
                 disabled={!title.trim()}
@@ -194,35 +228,42 @@ export default function PlanFormScreen() {
 
           {step === 2 && (
             <>
-              <Text style={styles.label}>{type === 'viaje' ? 'Fecha de inicio (AAAA-MM-DD)' : 'Fecha (AAAA-MM-DD)'}</Text>
-              <TextInput
-                value={startDate}
-                onChangeText={setStartDate}
-                placeholder="2026-10-03"
+              <Text style={styles.label}>{type === 'viaje' ? 'Fecha de inicio' : 'Fecha'}</Text>
+              <PickerField
+                mode="date"
+                value={startDate ? isoDateToDate(startDate) : null}
+                minimumDate={isEdit ? undefined : startOfToday()}
+                placeholder="Selecciona una fecha"
                 accessibilityLabel="Fecha del plan"
-                style={styles.input}
+                formatLabel={formatDateLabel}
+                onChange={(date) => setStartDate(dateToIsoDate(date))}
               />
               {type === 'viaje' && (
                 <>
-                  <Text style={styles.label}>Fecha de fin (AAAA-MM-DD, opcional)</Text>
-                  <TextInput
-                    value={endDate}
-                    onChangeText={setEndDate}
-                    placeholder="2026-10-05"
+                  <Text style={styles.label}>Fecha de fin (opcional)</Text>
+                  <PickerField
+                    mode="date"
+                    value={endDate ? isoDateToDate(endDate) : null}
+                    minimumDate={startDate ? isoDateToDate(startDate) : startOfToday()}
+                    placeholder="Selecciona una fecha"
                     accessibilityLabel="Fecha de fin del plan"
-                    style={styles.input}
+                    formatLabel={formatDateLabel}
+                    onChange={(date) => setEndDate(dateToIsoDate(date))}
+                    onClear={() => setEndDate('')}
                   />
                 </>
               )}
               {(type === 'comida' || type === 'evento') && (
                 <>
-                  <Text style={styles.label}>Hora (HH:mm, opcional)</Text>
-                  <TextInput
-                    value={time}
-                    onChangeText={setTime}
-                    placeholder="21:00"
+                  <Text style={styles.label}>Hora (opcional)</Text>
+                  <PickerField
+                    mode="time"
+                    value={time ? timeStringToDate(time) : null}
+                    placeholder="Selecciona una hora"
                     accessibilityLabel="Hora del plan"
-                    style={styles.input}
+                    formatLabel={(date) => dateToTimeString(date)}
+                    onChange={(date) => setTime(dateToTimeString(date))}
+                    onClear={() => setTime('')}
                   />
                 </>
               )}
@@ -354,7 +395,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chipLabel: { fontSize: 12, fontWeight: '600', color: '#161B2E' },
+  chipActive: { backgroundColor: '#161B2E', borderColor: '#161B2E' },
   chipLabelActive: { color: '#fff' },
+  hint: { fontSize: 11, color: '#8C8C88', marginBottom: 16 },
   row: { flexDirection: 'row', gap: 8, marginTop: 20 },
   flex1: { flex: 1 },
   primaryButton: {

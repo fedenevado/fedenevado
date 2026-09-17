@@ -44,4 +44,36 @@ export class PlansController {
   setRsvp(@Param("id") id: string, @Body() dto: RsvpDto, @Req() request: AuthenticatedRequest) {
     return this.plansService.setRsvp(request.user.id, id, dto.status);
   }
+
+  @Post(":id/invitation")
+  getOrCreateInvitation(@Param("id") id: string, @Req() request: AuthenticatedRequest) {
+    return this.plansService.getOrCreateInvitation(request.user.id, id);
+  }
+
+  @Get(":id/join-requests")
+  listJoinRequests(@Param("id") id: string, @Req() request: AuthenticatedRequest) {
+    return this.plansService.listJoinRequests(request.user.id, id);
+  }
+
+  @Patch(":id/join-requests/:requestId/approve")
+  @HttpCode(HttpStatus.OK)
+  async approveJoinRequest(
+    @Param("id") id: string,
+    @Param("requestId") requestId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    await this.plansService.approveJoinRequest(request.user.id, id, requestId);
+    return { success: true };
+  }
+
+  @Patch(":id/join-requests/:requestId/reject")
+  @HttpCode(HttpStatus.OK)
+  async rejectJoinRequest(
+    @Param("id") id: string,
+    @Param("requestId") requestId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    await this.plansService.rejectJoinRequest(request.user.id, id, requestId);
+    return { success: true };
+  }
 }

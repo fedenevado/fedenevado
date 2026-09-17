@@ -1,5 +1,641 @@
 # Progreso — Cantixplora
 
+## v1.0 — Lanzamiento (beta cerrada) — en curso
+
+Alcance acordado con el usuario, dividido en pasos: **A** pulido general de
+UX, **B** backend del centro de notificaciones, **C** pantalla mobile de
+notificaciones, **D** onboarding (registro + añadir 2-3 amigos guiado).
+**Paso E (push real con FCM)** queda aparte, aplazado explícitamente hasta
+que el usuario esté listo para salir de Expo Go y montar un development
+build con EAS + un proyecto de Firebase real — decisión tomada con el
+usuario antes de empezar a programar esta fase (2026-09-15).
+
+### Paso A — Pulido general de UX: hecho
+
+Auditoría hecha con `grep` sobre las 11 pantallas de `apps/mobile/src/app/`
+(back buttons, colores de fondo, `KeyboardAvoidingView`, indicadores de
+carga). Dos hallazgos concretos, corregidos — nada más se encontró suelto
+o inconsistente entre pantallas:
+
+- **Color de fondo con typo**: `list-templates.tsx` usaba `#F5F5F3` en el
+  botón "+" de añadir elemento, en vez del `#F5F5F2` que usa el resto de la
+  app para ese mismo tono. Corregido.
+- **Sin `KeyboardAvoidingView`**: `friends.tsx`, `plan-form.tsx`,
+  `plans.tsx` (filtros de fecha) y `list-templates.tsx` tenían `TextInput`
+  sin evitar que el teclado tapase contenido (ya lo tenían `login.tsx`,
+  `forgot-password.tsx` y `reset-password.tsx`). Añadido en los 4, con
+  `behavior="padding"` en iOS, igual que las pantallas de auth.
+- Además, en `friends.tsx` el contenido (resultados de búsqueda,
+  solicitudes) **no estaba dentro de ningún `ScrollView`** — con una lista
+  larga de amigos/solicitudes, las filas de abajo quedarían inalcanzables,
+  y el problema se agrava justo con el teclado abierto (los resultados de
+  la búsqueda aparecen debajo del propio input). Se envolvió en
+  `ScrollView` con `keyboardShouldPersistTaps="handled"` (igual que
+  `login.tsx`), y se añadió el mismo prop a los `ScrollView` ya existentes
+  de `plan-form.tsx`, `plans.tsx` y `list-templates.tsx` para poder tocar
+  filas/botones sin tener que cerrar el teclado primero con un toque
+  aparte.
+
+Evidencia:
+```
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json
+(sin salida — sin errores de tipos)
+
+$ npx expo export --platform android
+Android Bundled ... (1274 modules) — sin errores
+Exported: dist
+```
+
+No verificado todavía: prueba visual en Expo Go de estos 4 archivos
+(el cambio es de comportamiento del teclado, no se puede confirmar solo
+con `tsc`/bundle).
+
+### Paso B — Backend del centro de notificaciones: hecho, probado con tests unitarios
+
+- **Dos disparadores nuevos** (antes solo existía `expense_settled`, de
+  v0.4): `plan_invite` en `PlansService` — al crear un plan con invitados y
+  al añadir invitados nuevos en `updatePlan` (solo a quien se invita de
+  nuevo, no a todo el mundo cada vez que se edita el plan) — y
+  `new_expense` en `ExpensesService.createExpense` — a todos los demás
+  participantes del plan (no solo a quienes están en el reparto, igual
+  criterio que la visibilidad de gastos), nunca a quien creó el gasto.
+- `apps/backend/src/notifications/` (`NotificationsModule`/`Controller`/
+  `Service`) nuevo, registrado en `app.module.ts`. Endpoints:
+  `GET /notifications`, `PATCH /notifications/:id/read`,
+  `PATCH /notifications/read-all`. Sin cambios de schema — `Notification`
+  ya existía completo desde el scaffold inicial.
+- El schema no guarda el texto de la notificación (correcto, cero datos de
+  prueba) ni tiene relación directa `actorId → User`: el mensaje a mostrar
+  y la pestaña de destino (`detalles`/`gastos`/`chat`, según el tipo) se
+  calculan en el backend a partir de `type` + nombre del actor + título del
+  plan, con una consulta en lote (no N+1) para resolver actores y planes.
+  Cubre los 8 valores de `NotificationType` aunque hoy solo dos los disparan
+  código (los otros son fallback defensivo, no invención de comportamiento
+  nuevo).
+- **Simplificación consciente en `expense_settled`**: el mensaje no incluye
+  el importe (`"{actor} marcó un pago como hecho en {plan}"`), porque el
+  importe vive en `Payment`, no en `Notification`, y cruzarlos de forma
+  fiable habría requerido más que este paso — no es una omisión, es una
+  decisión tomada en esta sesión para no ampliar el alcance del Paso B.
+- **Gap de schema conocido desde v0.4** (`notifications.plan_id` sin FK con
+  cascade): manejado defensivamente sin tocar el schema — si el plan de una
+  notificación ya no existe, esa notificación se descarta de la lista (no
+  tendría a dónde llevar al tocarla, y toda notificación debe ser
+  clicable). Cubierto por test unitario.
+- Solo el propietario de una notificación puede marcarla como leída
+  (`ForbiddenException` si no) — cubierto por test unitario.
+
+Evidencia:
+```
+$ pnpm --filter backend test
+Test Suites: 10 passed, 10 total
+Tests:       89 passed, 89 total   (antes: 79 — +10 de notificaciones)
+
+$ pnpm --filter backend build
+> nest build   (sin errores)
+
+$ cd apps/backend && npx prisma validate
+The schema at prisma/schema.prisma is valid 🚀   (sin migración nueva)
+```
+
+### Verificado contra el backend/DB reales en esta sesión (curl)
+
+Escenario de extremo a extremo con 2 cuentas desechables creadas y
+eliminadas en esta misma sesión (`qa-notif-a/b@example.com`, borradas de
+Supabase Auth vía API admin y de `users`/`friendships`/`notifications` al
+terminar — sin rastro): A y B amigas; A crea un plan invitando a B →
+notificación `plan_invite` para B ("QA Notif a te invitó a Cena de
+prueba", `targetTab: "detalles"`); B confirma RSVP y añade un gasto de 40€
+repartido entre las dos → notificación `new_expense` para A ("QA Notif b
+añadió un gasto en Cena de prueba", `targetTab: "gastos"`).
+
+- **Solo el destinatario recibe cada notificación**: confirmado — B no
+  recibió `new_expense` (fue quien creó el gasto) y A no recibió
+  `plan_invite` (fue quien invitó). **Confirmado.**
+- **Autorización de "marcar como leída"**: B intenta marcar como leída la
+  notificación de A → `403` ("Esta notificación no te pertenece."); A
+  marca la suya → `200`, y al volver a listar aparece `read: true`.
+  **Confirmado.**
+- **Marcar todas como leídas**: B → `200`, su notificación pasa a
+  `read: true`. **Confirmado.**
+- **Filtrado defensivo del gap de FK sin cascade**: A borra el plan →
+  `GET /notifications` de ambas devuelve `[]` inmediatamente (no un error,
+  no un objeto con `plan: null`), mientras que por `psql` se confirmó que
+  las 2 filas de `notifications` siguen físicamente en la base, huérfanas
+  (`plan_id` apuntando a un plan que ya no existe) — el gap sigue ahí tal
+  como se documentó en v0.4, pero la API nunca expone una notificación sin
+  dónde llevar al tocarla. **Confirmado.**
+
+### Paso C — Mobile: pantalla de notificaciones: implementado, pendiente de tu prueba en Expo Go
+
+- `apps/mobile/src/app/notifications.tsx` nueva: lista de notificaciones
+  reales (`api.listNotifications`), "Marcar todas como leídas (N)" solo
+  visible si hay alguna sin leer, estado vacío, cada fila **clicable**
+  (navega a `/plan/:id?tab=<detalles|gastos|chat>` y marca esa notificación
+  como leída) — ninguna fila sin acción, como exige `CLAUDE.md`. El
+  indicador de "no leída" nunca es solo color: hay una etiqueta de texto
+  ("Nueva") además del borde/punto de color, y el mensaje va en negrita.
+- `apps/mobile/src/app/plan/[id].tsx` acepta ahora un query param `tab`
+  opcional para abrir directamente en Detalles/Gastos/Chat al llegar desde
+  una notificación (antes solo tenía `id`).
+- Entrada nueva "Avisos" en la fila de navegación de `home.tsx`, con el
+  número de no leídas entre paréntesis cuando hay alguna — la fila de
+  navegación se envolvió en un `ScrollView` horizontal para que quepan los
+  5 botones sin desbordar en pantallas estrechas (~400px), en vez de
+  arriesgarse a que el nuevo botón se corte.
+- Nuevos tipos/métodos en `api/client.ts`: `AppNotification`,
+  `listNotifications`, `markNotificationRead`, `markAllNotificationsRead`.
+- Accesibilidad incluida ya en esta pasada: `accessibilityLabel` que
+  incluye "Nueva" cuando no está leída, roles de botón, 44×44pt.
+
+Evidencia:
+```
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json
+(sin salida — sin errores de tipos)
+
+$ npx expo export --platform android
+Android Bundled ... — sin errores
+Exported: dist
+```
+
+No verificado todavía: prueba visual en Expo Go (abrir notificaciones
+reales, tocar una y comprobar que el plan se abre en la pestaña correcta,
+marcar todas como leídas).
+
+### Paso D — Onboarding: implementado, pendiente de tu prueba en Expo Go
+
+No hay maqueta de esto en `docs/cantixplora-prototype.jsx` (fase sin
+referencia de comportamiento, diseño propuesto y no objetado por el
+usuario antes de programar):
+
+- `apps/mobile/src/app/onboarding.tsx` nueva, 2 pasos en un solo archivo
+  (mismo patrón que los pasos de `plan-form.tsx`): (1) bienvenida breve con
+  el nombre real del usuario; (2) "Añade a tus primeros amigos" —
+  reutiliza `api.searchFriends`/`sendFriendRequest`/`acceptFriendRequest`
+  (mismo comportamiento que `friends.tsx`: "añadir" envía una solicitud,
+  no crea la amistad al instante, porque requiere aceptación mutua) con un
+  contador de solicitudes enviadas. **"Saltar" siempre visible en ambos
+  pasos** — nunca un muro obligatorio, principio de accesibilidad/UX
+  explícito en `CLAUDE.md`.
+- **Sin campo nuevo en el schema**: no hay ningún `onboardingCompleted`
+  persistido. Se decide solo por el flujo de esta sesión de la app: en
+  `login.tsx`, `submit()` marca un estado local `justRegistered` justo
+  antes de llamar a `register()` (no a `login()`), y el `<Redirect>` que ya
+  existía tras autenticar usa ese estado para mandar a `/onboarding` en vez
+  de `/home` solo cuando viene de un registro nuevo. Volver a iniciar
+  sesión (o que el token se restaure solo al abrir la app) nunca vuelve a
+  mostrar el onboarding.
+
+Evidencia:
+```
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json
+(sin salida — sin errores de tipos)
+
+$ npx expo export --platform android
+Android Bundled ... — sin errores
+Exported: dist
+```
+
+No verificado todavía: prueba visual en Expo Go — registrar una cuenta
+nueva de verdad y comprobar que aparece el onboarding (y no al volver a
+iniciar sesión con una cuenta existente), que "Saltar" funciona en ambos
+pasos, y que enviar/aceptar solicitudes desde ahí deja el mismo estado que
+se vería luego en la pantalla Amigos.
+
+### Paso extra — Barra de navegación inferior fija (pedido explícito del usuario, 2026-09-15)
+
+El usuario pidió sustituir la fila de botones de texto (Planes/Amigos/
+Perfil/Salir) por una barra de pestañas real y fija, con 5 elementos según
+descripción exacta suya (Inicio/Planes/"+" flotante/Amigos con badge/
+Perfil con avatar) — **esto revierte explícitamente** la decisión de
+"no tocar la navegación" tomada al planificar v0.6 y el Paso C de v1.0 (ver
+notas de esos bloques): el usuario tiene autoridad para ampliar el alcance,
+y aquí lo hizo con una instrucción muy concreta.
+
+Dos aclaraciones antes de programar (avisadas al usuario, no asumidas en
+silencio):
+- No llegó ninguna imagen adjunta a esta sesión, solo la descripción en
+  texto (bastante precisa, suficiente para implementar).
+- El prototipo **no tiene** ningún "Cerrar sesión" (su login no autentica
+  de verdad, nunca hubo sesión que cerrar). Sí tiene una pantalla de
+  Perfil/Ajustes real con filas "Plantillas de listas", "Notificaciones",
+  "Sincronizar calendario", "Cuenta" — pero las 3 últimas están sin
+  `onClick` en el prototipo (mismo patrón inerte que "+ Invitar amigos").
+  Se colocó "Cerrar sesión" en Perfil (única ubicación razonable, dado que
+  ya no hay fila propia para ello), y **no se copiaron** las 3 filas sin
+  función real.
+
+**Cambio de arquitectura de navegación**: de `Stack` puro a
+`Stack` + grupo `(tabs)` con `Tabs` anidado (patrón estándar de
+expo-router — un grupo de ruta no cambia la URL, así que `/home`,
+`/plans`, `/friends`, `/profile` siguen siendo las mismas URLs de
+siempre, ningún otro archivo tuvo que cambiar sus enlaces):
+
+- `apps/mobile/src/app/(tabs)/_layout.tsx` nuevo: `<Tabs>` con 5
+  `<Tabs.Screen>` — Inicio (icono `Home`), Planes (icono `ListChecks`),
+  un tab "fantasma" central (`new`) cuyo `tabBarButton` es el botón "+"
+  circular naranja (#FF5A3C) elevado (`marginTop: -28`), que intercepta el
+  toque (`listeners.tabPress` con `preventDefault`) y navega directamente
+  a `/plan-form` en vez de cambiar de pestaña; Amigos (icono `Heart`,
+  relleno cuando está activa, con `tabBarBadge` numérico = solicitudes de
+  amistad pendientes + notificaciones sin leer, mismo criterio que el
+  prototipo); Perfil (avatar circular con las iniciales reales del
+  usuario en vez de icono genérico).
+- `apps/mobile/src/app/(tabs)/new.tsx`: placeholder inerte (nunca se
+  monta de verdad, existe solo porque expo-router exige un archivo físico
+  por cada `<Tabs.Screen>`).
+- `apps/mobile/src/badges/badge-context.tsx` nuevo: `BadgeProvider` +
+  `useBadges()`, monta en `_layout.tsx` raíz (envuelve a `AuthProvider`
+  hacia dentro). Expone `amigosBadge` y `refreshBadges()`; se llama desde
+  `home.tsx`/`friends.tsx` al cargar y tras aceptar/rechazar una
+  solicitud, para que el badge se actualice sin polling.
+- **Dependencia nueva**: `lucide-react-native` + `react-native-svg`
+  (`npx expo install`, versión resuelta automáticamente por Expo para el
+  SDK actual) — mismos iconos que usa el prototipo (Home/ListChecks/
+  Heart/Plus), en vez de un sustituto aproximado de otra librería.
+  Funcionan en Expo Go sin dev client (son JS + SVG, sin código nativo
+  propio).
+- **Los 4 archivos existentes se movieron** a `(tabs)/` (mismo nombre,
+  misma URL): `home.tsx`, `plans.tsx`, `friends.tsx`, `profile.tsx`. A los
+  3 primeros se les quitó el botón "‹ Volver" (ya no tiene sentido en una
+  pestaña raíz) y el `paddingTop: 56` fijo se sustituyó por
+  `useSafeAreaInsets()` (más correcto que el número fijo que ya traían de
+  antes, ahora que no hay una fila de navegación propia ocupando ese
+  espacio).
+- `home.tsx` perdió también su fila de navegación completa y el estado de
+  notificaciones que solo existía para pintar el contador — ese contador
+  ahora vive en el badge de la pestaña Amigos vía `BadgeProvider`.
+- `friends.tsx` ganó un botón "Avisos" en su cabecera (antes vivía en la
+  fila de navegación de Inicio) que navega a `/notifications` — coherente
+  con el prototipo, donde el inbox de notificaciones conceptualmente vive
+  dentro de Amigos (el badge ya sumaba solicitudes + no leídas ahí).
+- `profile.tsx` rediseñado: avatar circular grande con iniciales (76px,
+  fondo `#161B2E`), tarjeta con nombre/email, sección "Ajustes" con
+  "Plantillas de listas" (la única fila real), y botón "Cerrar sesión"
+  (antes en la fila de navegación de Inicio, ahora aquí).
+
+Evidencia:
+```
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json
+(sin salida — sin errores de tipos)
+
+$ npx expo export --platform android
+Android Bundled 53725ms node_modules/expo-router/entry.js (3244 modules)
+Exported: dist
+```
+El salto de 1274 a 3244 módulos es esperable (nuevas dependencias:
+lucide-react-native, react-native-svg, y el navegador de tabs de React
+Navigation que expo-router trae mono-repo pero no se usaba hasta ahora).
+Sin errores de bundling — en particular, expo-router valida en tiempo de
+build que no haya rutas duplicadas, y no falló, lo que descarta un
+conflicto entre `(tabs)/home.tsx` y el `app/index.tsx` que ya existía en
+la raíz (ambos podrían haber colisionado en "/" si no se hubiera montado
+bien el grupo de ruta).
+
+**No tengo forma de generar una captura de pantalla real en este
+entorno** (no hay simulador/emulador con salida visual disponible aquí) —
+por eso esta descripción es exhaustiva en vez de una imagen. Lo que sí
+puedo confirmar con evidencia real son los comandos de arriba. La
+verificación visual (que se vea y se comporte como la captura de
+referencia) solo la puedes hacer tú en Expo Go.
+
+### Paso extra 2 — Auditoría completa contra el prototipo, y 3 correcciones (2026-09-16)
+
+A petición del usuario, se hizo una auditoría pantalla a pantalla contra
+`docs/cantixplora-prototype.jsx` (Login, detalle de plan, pestaña Planes,
+Perfil, Calendario) comparando colores, textos, elementos y comportamiento
+sin asumir nada por existir el archivo. Se encontraron varias desviaciones;
+el usuario decidió: aplazar "El Plan" (itinerario) a post-v1.0 con nota
+explícita en `docs/roadmap.md` (se había quedado fuera de toda fase por
+omisión — nunca se anotó pendiente, a diferencia del resto de piezas de
+Planes que sí quedaron en backlog); marcar el acceso de invitado sin
+cuenta como pendiente en `CLAUDE.md` y `docs/roadmap.md` (no existe
+todavía, y sin él un plan público por enlace no se puede abrir de verdad
+sin cuenta); y corregir ahora 3 hallazgos concretos.
+
+**2a — Selector de fecha nativo en filtros de Planes**: `(tabs)/plans.tsx`
+usaba `TextInput` de texto libre pidiendo "AAAA-MM-DD" a mano. Sustituido
+por `PickerField` (el mismo componente que ya usa `plan-form.tsx`), con
+selector nativo y `minimumDate` en "Hasta" para no permitir un rango
+invertido.
+
+**2b — Cabecera del detalle de plan**: `plan/[id].tsx` tenía una cabecera
+plana (solo "‹ Volver" + título) visible únicamente en cierto contexto.
+Ahora es una franja de color por tipo de plan (`planTypeColor`), visible
+en las 4 pestañas (Detalles/Chat/Listas/Gastos, no solo en Detalles), con
+subtítulo de lugar+fecha+hora, badge de RSVP tocable (abre el mismo
+`ChangeRsvpModal` de siempre) y un stack de hasta 4 avatares de
+confirmados que abre la nueva hoja "Confirmados".
+
+**2c — Enlace de invitación + aprobación de solicitudes (planes
+privados)**: al investigar esto salió un hallazgo adicional, confirmado
+con el usuario antes de programar — los planes privados no existían de
+forma funcional (sin campo `visibility` en los DTOs, sin toggle en
+`plan-form.tsx`, y sin ningún punto de entrada real que generase una
+`JoinRequest`; en el propio prototipo `joinRequests` es solo dato de
+ejemplo hardcodeado). Se amplió el alcance con permiso explícito del
+usuario:
+
+- Backend (`apps/backend/src/plans/`): `visibility` en `CreatePlanDto`/
+  `UpdatePlanDto` y en `PlanSummary`; `PlansService.getOrCreateInvitation`
+  (idempotente, solo-owner), `joinViaInvitationToken` (público → une
+  directo; privado → crea `JoinRequest` pendiente + notifica al owner con
+  `join_request_received`, tipo que ya estaba anticipado en el schema
+  desde v1.0 Paso B pero nunca se disparaba), `listJoinRequests`,
+  `approveJoinRequest` (crea participante + notifica
+  `join_request_approved`) y `rejectJoinRequest`. Nuevo
+  `InvitationsController` (`POST /invitations/:token/join`, con
+  `@Throttle` igual que el resto de endpoints sensibles). **Sin
+  migración de Prisma** — el modelo (`Invitation`, `JoinRequest`,
+  `PlanParticipant.role`, `Plan.visibility`) ya existía completo en
+  `docs/schema.prisma` desde el scaffold inicial.
+- Mobile: toggle Pública/Privada en `plan-form.tsx`; nuevo
+  `guest-list-sheet.tsx` (enlace copiable con `expo-clipboard`, generado
+  vía `Linking.createURL()` de `expo-linking` para que funcione tanto en
+  Expo Go como en un build futuro; sección de solicitudes pendientes con
+  aprobar/rechazar si el plan es privado; lista de confirmados con badges
+  ORGANIZADOR/SIN CUENTA); nueva ruta `app/invite/[token].tsx` que
+  consume el enlace para un usuario ya autenticado (público → une y
+  navega al plan; privado → mensaje de solicitud pendiente). El acceso
+  sin cuenta en absoluto (`GuestPlanPreview` del prototipo) sigue fuera
+  de alcance, tal como quedó anotado en `docs/roadmap.md`.
+- No se implementó "quitar participante" del plan (sí está en el
+  prototipo) — no se pidió para este bloque, queda anotado en el propio
+  código como ampliación posible si se pide más adelante.
+
+Evidencia:
+```
+$ pnpm --filter backend prisma validate
+The schema at prisma/schema.prisma is valid 🚀
+
+$ pnpm --filter backend test
+Test Suites: 10 passed, 10 total
+Tests:       102 passed, 102 total
+(27 en plans.service.spec.ts, 14 de ellos nuevos para invitación/solicitudes)
+
+$ pnpm --filter backend build
+(sin errores)
+
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json
+(sin salida — sin errores de tipos)
+
+$ npx expo export --platform android
+Android Bundled ... (3251 modules) — sin errores
+Exported: dist
+```
+
+**No verificado todavía (requiere tu dispositivo, Expo Go)**: crear un
+plan privado y comprobar el toggle; copiar el enlace desde "Confirmados"
+y abrirlo con otra cuenta — debe aparecer como solicitud pendiente;
+aprobarla y comprobar que la persona pasa a participante y le llega la
+notificación; repetir con un plan público y comprobar que se une directo;
+comprobar visualmente la cabecera de color/RSVP/avatares en las 4
+pestañas y el selector de fecha nativo en Planes. Accesibilidad
+(VoiceOver/TalkBack) de todo lo nuevo de este bloque tampoco está
+confirmada todavía — se suma a la deuda de accesibilidad de más abajo.
+
+## Regla de proceso añadida (decisión del usuario, 2026-09-15)
+
+Al cerrar v0.2, "+ Invitar amigos" y "Buscar hueco común" se dejaron fuera
+de alcance con nota explícita en `docs/roadmap.md` (dependían de
+Planes/Calendario). Pero al cerrar v0.5 no se dejó ninguna nota explícita
+de que `InicioView` del prototipo (que depende de `CalendarView`, aún
+inexistente en v0.5) quedaba sin implementar — se omitió en silencio en
+vez de anotarse como dependencia pendiente. El usuario pidió que esto no
+vuelva a pasar: **añadido un ítem al checklist "Antes de dar por cerrada
+cualquier fase" de `CLAUDE.md`** — cualquier pantalla/comportamiento del
+prototipo que dependa de una fase futura y por eso no se implemente entera
+debe quedar anotado explícitamente aquí como "pendiente, depende de vX.X",
+nunca omitido sin más.
+
+## v0.6 — Calendario y Tareas de ruta — CERRADO 2026-09-15
+
+Confirmado por el usuario: "v0.6 cerrado y verificado" (probado en Expo
+Go en dispositivo real). La confirmación no mencionó específicamente el
+checklist de accesibilidad VoiceOver/TalkBack — siguiendo el mismo
+criterio que v0.4/v0.5 (no marcar como resuelta sin confirmación
+explícita), se añade a la "Deuda de accesibilidad arrastrada" al final de
+este documento en vez de darla por buena.
+
+"Buscar hueco común" y la tarjeta de gasto pendiente siguen aplazadas tal
+como se anotó al cerrar cada bloque (ver detalle debajo).
+
+Alcance acordado con el usuario, dividido en 3 bloques: **Bloque 1**
+backend de Reminders ("tareas de ruta"), **Bloque 2** componente de
+Calendario + `DaySheet` en mobile, **Bloque 3** `InicioView` completo
+reemplazando el placeholder de `home.tsx`. Guardando progreso real en este
+documento al terminar cada bloque (no solo al final de la fase), para que
+si la sesión se corta por contexto largo, la siguiente pueda retomar sin
+perder trabajo — como ya pasó en la sesión anterior, que se cortó a mitad
+de la planificación.
+
+**Pendiente, depende de fase futura (anotado explícitamente, no omitido en
+silencio — ver regla de proceso arriba):**
+- **"Buscar hueco común" (disponibilidad compartida entre amigos)**:
+  `docs/roadmap.md` lo lista dentro de v0.6, pero el usuario aprobó
+  explícitamente solo los 3 bloques de arriba (sin mencionar este). Requiere
+  un endpoint nuevo (`GET /friendships/availability?friendIds=...`, con
+  cuidado de privacidad: solo ocupado/libre por fecha, nunca qué plan es —
+  mismo criterio que `FriendCalendarSheet` del prototipo) que no existe
+  todavía. Queda pendiente, depende de que se pida explícitamente (v0.6
+  ampliada o v0.7).
+- **Tarjeta "Debes X€" (`myPendingExpense`) en Inicio**: necesitaría un
+  endpoint agregado nuevo entre todos los planes del usuario (hoy
+  `GET /plans/:id/expenses/balances` es por plan, no hay agregado
+  cross-plan). No es parte de "Calendario y Tareas de ruta". Queda
+  pendiente, depende de que se pida explícitamente.
+
+### Bloque 1 — Backend de Reminders: implementado y probado con tests unitarios
+
+- `apps/backend/src/reminders/` (`RemindersModule`/`Controller`/`Service`,
+  DTOs `create-reminder`, `update-reminder`, `reminder-done`,
+  `create-reminder-item`, `update-reminder-item`), registrado en
+  `app.module.ts`. Usa los modelos `Reminder`/`ReminderShare`/
+  `ReminderItem` que ya estaban en `docs/schema.prisma` desde el scaffold
+  inicial (sin `planId`: es una entidad de usuario, no de plan). **Sin
+  cambios de modelo de datos, sin migración nueva** — confirmado con
+  `npx prisma migrate status` → "Database schema is up to date!" (2
+  migraciones, ninguna nueva).
+- Endpoints: `GET/POST /reminders`, `PATCH/DELETE /reminders/:id`,
+  `PATCH /reminders/:id/done`, `POST/PATCH/DELETE
+  /reminders/:id/items[/:itemId]`.
+- Reglas de pertenencia (decisión tomada en esta sesión, ver
+  `reminders.service.ts`): ve una tarea quien es `ownerId` o está en
+  `sharedWith` (a cualquier otra persona, 404 en vez de 403, mismo criterio
+  de privacidad que `PlansService` con los planes). Solo el propietario
+  edita título/fecha/hora, gestiona con quién se comparte (solo amigos con
+  amistad `accepted`, mismo check que `PlansService.assertFriends`) y borra
+  la tarea. Propietario **o** compartidos: marcar hecha/pendiente y
+  gestionar el checklist (añadir/marcar/borrar elementos) — checklist
+  colaborativa, mismo criterio que Listas v0.5. Sin notificación al
+  compartir (el prototipo no la dispara).
+
+Evidencia:
+```
+$ pnpm --filter backend test -- reminders
+PASS src/reminders/reminders.service.spec.ts
+Tests:       11 passed, 11 total
+
+$ pnpm --filter backend test
+Test Suites: 9 passed, 9 total
+Tests:       79 passed, 79 total
+
+$ pnpm --filter backend build
+> nest build   (sin errores)
+
+$ cd apps/backend && npx prisma validate
+The schema at prisma/schema.prisma is valid 🚀
+
+$ npx prisma migrate status
+2 migrations found in prisma/migrations
+Database schema is up to date!
+```
+
+### Verificado contra el backend/DB reales en esta sesión (curl)
+
+Escenario de extremo a extremo con 3 cuentas desechables creadas y
+eliminadas en esta misma sesión (`qa-reminders-a/b/c@example.com`, borradas
+de Supabase Auth vía API admin y de `users`/`friendships` al terminar — sin
+rastro): A y B se hacen amigas (`accepted`); A crea una tarea de ruta
+("Preparar maletas", con hora y 1 elemento inicial) compartida con B; B la
+ve en su propio `GET /reminders` (visibilidad por `sharedWith`, no solo por
+`ownerId`).
+
+- **Colaborativo (owner o compartido)**: B marca la tarea como hecha
+  (`PATCH /reminders/:id/done`) → `200`; B marca el elemento del checklist
+  como hecho → `200`. **Confirmado.**
+- **Solo propietario**: B intenta cambiar el título → `403` ("Solo quien
+  creó la tarea de ruta puede editarla."); B intenta borrarla → `403`
+  (mismo mensaje). **Confirmado.**
+- **Compartir solo con amigos aceptados**: A intenta compartir con un UUID
+  v4 válido que no es su amigo → `403` ("Solo puedes compartir tareas de
+  ruta con amigos existentes."). **Confirmado.**
+- **Privacidad (404, no 403, para quien no tiene acceso)**: una tercera
+  cuenta QA sin amistad ni comparticiones intenta tocar la tarea →
+  `404` ("Tarea de ruta no encontrada."), no revela que existe.
+  **Confirmado.**
+- A añade un segundo elemento al checklist → `200`, aparece en la
+  respuesta. A (propietaria) borra la tarea → `200`; comprobado que ya no
+  existe (`404` incluso para ella). **Confirmado** (el borrado en cascada
+  de `ReminderItem`/`ReminderShare` ya estaba garantizado por el schema,
+  no hizo falta comprobarlo aparte).
+
+Nota de proceso: el proceso NestJS que sirve el puerto 3000 no es el mismo
+que las ventanas `nest start --watch` visibles en tmux (esas estaban
+inactivas) — es un `node dist/main` que se reinicia solo al cambiar
+`dist/` (confirmado indirectamente: `GET /reminders` sin token devolvió
+`401`, no `404`, lo que solo pasa si la ruta ya está registrada). No se
+tocó ni se reinició ningún proceso manualmente.
+
+### Bloque 2 — Mobile: componente de Calendario + DaySheet: implementado, sin verificar en Expo Go todavía
+
+- `apps/mobile/src/plans/calendar-view.tsx`: grid mensual navegable (botones
+  prev/mes/siguiente + swipe táctil con `onTouchStart`/`onTouchEnd`, mismo
+  umbral de 45px que el prototipo), días con evento(s) coloreados por tipo
+  (multi-evento con puntos por tipo) y punto de "tiene tarea de ruta"
+  (relleno si pendiente, hueco si todas hechas). Sin modo "no compacto"
+  (lista de planes del mes debajo del grid): no se ha construido porque
+  ninguna pantalla lo necesita todavía (no hay pestaña "Calendario"
+  separada, solo el grid embebido en Inicio) — evitar código sin usar.
+- `apps/mobile/src/plans/day-sheet.tsx`: hoja modal para un día concreto —
+  planes de ese día (tap → `onOpenPlan`), tareas de ruta de ese día
+  (checkbox marcar hecha/pendiente, tap para editar), formulario
+  crear/editar tarea (título, hora opcional vía `PickerField`, compartir
+  con amigos — deshabilitado si quien ve no es el propietario, igual que el
+  backend), checklist con añadir/marcar/borrar elemento, borrar tarea con
+  confirmación. Botones "+ Evento" (llama a `onAddEvent(date)`) y
+  "+ Tarea".
+- `apps/mobile/src/app/plan-form.tsx`: acepta ahora `initialDate` e
+  `initialInvitedIds` (query params) para precargar fecha/amigos al crear
+  un plan desde el Calendario — antes solo soportaba `id` para editar.
+- Nuevos tipos y métodos en `api/client.ts` para Reminders (`Reminder`,
+  `ReminderItem`, `ReminderShare`, `ReminderInput`, `listReminders`,
+  `createReminder`, `updateReminder`, `deleteReminder`, `setReminderDone`,
+  `addReminderItem`, `updateReminderItem`, `deleteReminderItem`).
+- Accesibilidad ya incluida en esta pasada (no aplazada): `accessibilityLabel`
+  descriptivo en cada celda del calendario (día + qué hay ese día),
+  checkboxes con `accessibilityRole="checkbox"` + `accessibilityState`,
+  áreas táctiles ≥44pt en celdas/botones.
+
+**Importante — todavía no es visible en la app:** estos dos componentes
+(`CalendarView`, `DaySheet`) no están conectados a ninguna pantalla
+todavía — ese cableado es el Bloque 3 (`InicioView`). Hasta que se
+complete el Bloque 3, la app seguirá viéndose igual que ahora en Expo Go;
+eso es lo esperado, no un fallo. Verificado con
+`cd apps/mobile && npx tsc --noEmit` → sin errores de tipos, pero sin
+prueba visual todavía porque no hay dónde montarlos.
+
+### Bloque 3 — Mobile: InicioView completo: implementado, pendiente de tu prueba en Expo Go
+
+- `apps/mobile/src/app/home.tsx` **reescrito por completo** — ya no es el
+  placeholder de v0.1 ("Hola, {nombre}" + 4 botones). Ahora carga
+  `api.listPlans` + `api.listReminders` + `api.listFriends` reales (nada de
+  `userId === "me"` ni datos fijos del prototipo) y muestra: estado vacío
+  ("Aún no tienes planes" + "+ Crear tu primer plan") cuando no hay ni
+  planes visibles ni tareas de ruta; "Tu próximo plan" (si no es hoy);
+  `CalendarView` embebido con `onSelectDay` → abre `DaySheet`; sección
+  "Hoy" (planes + tareas de ruta con checkbox, o los botones "+ Evento"/
+  "+ Tarea" si no hay nada); "Tus tareas de ruta" (próximas 4 sin hacer);
+  "Próximamente" (siguientes planes); enlace "Ver todos los planes →".
+  Los botones Planes/Amigos/Perfil/Salir que ya existían se mantienen como
+  una fila superior compacta (no se ha tocado la arquitectura de
+  navegación — sigue sin tab bar persistente, fuera de alcance de esta
+  fase, ver plan acordado).
+- Todas las mutaciones de tareas de ruta (crear, editar, borrar, marcar
+  hecha, checklist) llaman a la API real y recargan `plans`+`reminders`+
+  `friends` (`loadAll`), tanto desde las filas de Inicio como desde dentro
+  del `DaySheet`.
+- Accesibilidad incluida ya en esta pasada: `accessibilityLabel` en cada
+  fila/botón, checkboxes con `accessibilityRole="checkbox"` +
+  `accessibilityState`, error con `accessibilityLiveRegion="polite"`,
+  áreas táctiles ≥44pt.
+
+Evidencia:
+```
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json
+(sin salida — sin errores de tipos)
+
+$ npx expo export --platform android
+Android Bundled 47939ms node_modules/expo-router/entry.js (1274 modules)
+Exported: dist
+```
+El bundle de Metro/Hermes completo (1274 módulos, incluye `home.tsx`,
+`calendar-view.tsx`, `day-sheet.tsx`, `plan-form.tsx` y `client.ts`
+actualizados) se generó sin errores — más fuerte que solo `tsc`, porque
+también valida resolución de módulos y APIs de React Native en tiempo de
+bundle. `dist/` no se comprometió (ya está en `.gitignore`).
+
+### No verificado todavía (requiere tu dispositivo)
+
+- **Prueba real en Expo Go**: navegar el calendario (mes anterior/
+  siguiente y swipe), tocar un día con/sin planes/tareas, crear una tarea
+  de ruta con checklist y compartida con un amigo, marcarla hecha desde
+  Inicio y desde el DaySheet, editarla, borrarla, crear un evento desde
+  "+ Evento" del DaySheet y comprobar que llega con la fecha ya
+  preseleccionada al formulario de plan.
+- **Checklist de accesibilidad VoiceOver/TalkBack** sobre `home.tsx`,
+  `calendar-view.tsx` y `day-sheet.tsx` — no confirmado explícitamente
+  todavía (mismo criterio que el resto de fases: no se marca como
+  resuelto sin que tú lo confirmes).
+- Petición real contra el backend/DB en vivo (curl) del Bloque 1
+  (Reminders) — sigue pendiente, ver nota en ese bloque.
+
+### Checklist "antes de dar por cerrada la fase" (CLAUDE.md) — estado parcial
+
+- [x] Sin botones/filas sin acción real conectada: revisado — todo botón
+      interactivo de `home.tsx`/`day-sheet.tsx`/`calendar-view.tsx` llama a
+      la API real o navega.
+- [ ] Filtros/estado de UI persistente: no verificado todavía en uso real
+      (p. ej. que el mes navegado en el calendario no se pierda de forma
+      rara al abrir/cerrar el `DaySheet` — debería persistir porque
+      `CalendarView` no se desmonta, pero falta confirmarlo en dispositivo).
+- [ ] Checklist de accesibilidad VoiceOver/TalkBack — no confirmado.
+- [ ] Probado en dispositivo real con Expo Go — no confirmado.
+- [x] Dependencias de fase futura anotadas explícitamente, no omitidas en
+      silencio — ver "Pendiente, depende de fase futura" al principio de
+      esta sección de v0.6 (disponibilidad compartida y tarjeta de gasto
+      pendiente).
+
 ## Pendiente aplazado conscientemente (no es bug, no es "hecho a medias")
 
 - **Recuperación de contraseña — envío de email.** Implementada en código
@@ -632,6 +1268,13 @@ aprobación de solicitudes, invitado sin cuenta vía enlace).
       (`accessibilityLiveRegion="polite"`) sin cortar la lectura en curso;
       confirmado explícitamente por el usuario 2026-09-15 que su prueba
       fue solo funcional.
+- [ ] VoiceOver/TalkBack sobre `home.tsx`, `calendar-view.tsx` y
+      `day-sheet.tsx` (v0.6) — sigue pendiente; el usuario confirmó
+      "v0.6 cerrado y verificado" (2026-09-15) sin mencionar el lector de
+      pantalla, mismo criterio que las fases anteriores.
+- [ ] VoiceOver/TalkBack sobre la cabecera nueva de `plan/[id].tsx` y
+      sobre `guest-list-sheet.tsx`/`invite/[token].tsx` (auditoría v1.0,
+      2026-09-16) — sin confirmar todavía, no se ha probado en dispositivo.
 
 ## Reglas que siguen aplicando (de CLAUDE.md, no repetir el resto aquí)
 

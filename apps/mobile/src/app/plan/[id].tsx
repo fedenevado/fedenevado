@@ -7,6 +7,7 @@ import { formatPlanDate, planTypeColor, planTypeLabel } from '@/plans/plan-types
 import { ExpensesTab } from '@/plans/expenses-tab';
 import { ListsTab } from '@/plans/lists-tab';
 import { ChatTab } from '@/plans/chat-tab';
+import { GuestListSheet } from '@/plans/guest-list-sheet';
 
 type DetailTab = 'detalles' | 'chat' | 'listas' | 'gastos';
 
@@ -17,13 +18,25 @@ const RSVP_LABEL: Record<RsvpStatus, string> = {
   no: 'No voy',
 };
 
+function getInitials(name: string): string {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || '?'
+  );
+}
+
 function editHref(id: string): Href {
   return `/plan-form?id=${id}` as Href;
 }
 
 export default function PlanDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab: initialTabParam } = useLocalSearchParams<{ id: string; tab?: string }>();
   const { token, user } = useAuth();
 
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -35,7 +48,12 @@ export default function PlanDetailScreen() {
   const [rsvpPromptInitialized, setRsvpPromptInitialized] = useState(false);
   const [showDeclineConfirm, setShowDeclineConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [tab, setTab] = useState<DetailTab>('detalles');
+  const [showGuestList, setShowGuestList] = useState(false);
+  const [tab, setTab] = useState<DetailTab>(
+    initialTabParam === 'gastos' || initialTabParam === 'chat' || initialTabParam === 'listas'
+      ? initialTabParam
+      : 'detalles',
+  );
 
   const load = useCallback(async () => {
     if (!token || !id) return;
@@ -116,7 +134,7 @@ export default function PlanDetailScreen() {
 
   if (isLoading || !plan) {
     return (
-      <View style={styles.container}>
+      <View style={styles.loadingContainer}>
         {error ? <Text style={styles.error}>{error}</Text> : <ActivityIndicator style={styles.loading} accessibilityLabel="Cargando plan" />}
       </View>
     );
@@ -201,52 +219,93 @@ export default function PlanDetailScreen() {
     );
   }
 
+  const confirmedParticipants = plan.participants.filter((p) => p.rsvpStatus === 'yes');
+  const visibleAvatars = confirmedParticipants.slice(0, 4);
+  const extraConfirmedCount = confirmedParticipants.length - visibleAvatars.length;
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.headerBand, { backgroundColor: planTypeColor(plan.type) }]}>
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="Volver"
           style={styles.backButton}
         >
-          <Text style={styles.backLabel}>‹ Volver</Text>
+          <Text style={styles.backLabel}>‹ Planes</Text>
         </Pressable>
         <Text style={styles.title} numberOfLines={1}>
           {plan.title}
         </Text>
-      </View>
-
-      <View style={styles.tabRow}>
-        {(
-          [
-            { key: 'detalles', label: 'Detalles' },
-            { key: 'chat', label: 'Chat' },
-            { key: 'listas', label: 'Listas' },
-            { key: 'gastos', label: 'Gastos' },
-          ] as const
-        ).map((t) => {
-          const isActive = tab === t.key;
-          return (
-            <Pressable
-              key={t.key}
-              onPress={() => setTab(t.key)}
-              accessibilityRole="tab"
-              accessibilityLabel={t.label}
-              accessibilityState={{ selected: isActive }}
-              style={[styles.tab, isActive && styles.tabActive]}
-            >
-              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{t.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {error && (
-        <Text style={styles.error} accessibilityLiveRegion="polite" role="alert">
-          {error}
+        <Text style={styles.headerSubtitle} numberOfLines={1}>
+          {plan.location ? `${plan.location} · ` : ''}
+          {formatPlanDate(plan.startDate, plan.endDate, plan.time)}
         </Text>
-      )}
+
+        <View style={styles.headerBottomRow}>
+          <Pressable
+            onPress={() => setRsvpPromptOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Tu respuesta: ${RSVP_LABEL[myRsvp]}. Toca para cambiarla`}
+            style={styles.rsvpBadge}
+          >
+            <Text style={styles.rsvpBadgeLabel}>{RSVP_LABEL[myRsvp].toUpperCase()}</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setShowGuestList(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Ver confirmados, ${confirmedParticipants.length}`}
+            style={styles.avatarStack}
+          >
+            {visibleAvatars.map((p, i) => (
+              <View
+                key={p.id}
+                style={[styles.avatarCircle, i > 0 && styles.avatarCircleOverlap, !p.userId && styles.avatarCircleGuest]}
+              >
+                <Text style={[styles.avatarLabel, !p.userId && styles.avatarLabelGuest]}>
+                  {p.userId ? getInitials(p.name) : '?'}
+                </Text>
+              </View>
+            ))}
+            <Text style={styles.avatarCount}>
+              {extraConfirmedCount > 0 ? `+${extraConfirmedCount}` : confirmedParticipants.length}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.body}>
+        <View style={styles.tabRow}>
+          {(
+            [
+              { key: 'detalles', label: 'Detalles' },
+              { key: 'chat', label: 'Chat' },
+              { key: 'listas', label: 'Listas' },
+              { key: 'gastos', label: 'Gastos' },
+            ] as const
+          ).map((t) => {
+            const isActive = tab === t.key;
+            return (
+              <Pressable
+                key={t.key}
+                onPress={() => setTab(t.key)}
+                accessibilityRole="tab"
+                accessibilityLabel={t.label}
+                accessibilityState={{ selected: isActive }}
+                style={[styles.tab, isActive && styles.tabActive]}
+              >
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{t.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {error && (
+          <Text style={styles.error} accessibilityLiveRegion="polite" role="alert">
+            {error}
+          </Text>
+        )}
 
       {tab === 'gastos' ? (
         <ExpensesTab
@@ -328,6 +387,7 @@ export default function PlanDetailScreen() {
         )}
       </ScrollView>
       )}
+      </View>
 
       {rsvpPromptOpen && (
         <ChangeRsvpModal
@@ -368,6 +428,16 @@ export default function PlanDetailScreen() {
             </View>
           </View>
         </View>
+      )}
+
+      {showGuestList && (
+        <GuestListSheet
+          token={token}
+          plan={plan}
+          isOwner={isOwner}
+          onClose={() => setShowGuestList(false)}
+          onParticipantsChanged={load}
+        />
       )}
     </View>
   );
@@ -456,11 +526,41 @@ function ChangeRsvpModal({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F2', padding: 20, paddingTop: 56 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 4 },
-  backButton: { minHeight: 44, minWidth: 44, justifyContent: 'center' },
-  backLabel: { fontSize: 15, color: '#161B2E', fontWeight: '600' },
-  title: { fontSize: 18, fontWeight: '700', color: '#161B2E', flexShrink: 1 },
+  container: { flex: 1, backgroundColor: '#F5F5F2' },
+  loadingContainer: { flex: 1, backgroundColor: '#F5F5F2', padding: 20, paddingTop: 56 },
+  headerBand: { paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16 },
+  backButton: { minHeight: 44, justifyContent: 'center', marginBottom: 6, alignSelf: 'flex-start' },
+  backLabel: { fontSize: 13, color: '#fff', fontWeight: '600' },
+  title: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 4, marginBottom: 12 },
+  headerBottomRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  rsvpBadge: {
+    minHeight: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+  },
+  rsvpBadgeLabel: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
+  avatarStack: { flexDirection: 'row', alignItems: 'center', minHeight: 32 },
+  avatarCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#161B2E',
+    borderWidth: 2,
+    borderColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarCircleOverlap: { marginLeft: -8 },
+  avatarCircleGuest: { backgroundColor: '#fff', borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.9)' },
+  avatarLabel: { fontSize: 8, fontWeight: '700', color: '#fff' },
+  avatarLabelGuest: { color: '#8C8C88' },
+  avatarCount: { fontSize: 11, color: '#fff', marginLeft: 6, fontWeight: '600' },
+  body: { flex: 1, padding: 20, paddingTop: 16 },
   tabRow: { flexDirection: 'row', gap: 6, marginBottom: 12 },
   tab: {
     flex: 1,

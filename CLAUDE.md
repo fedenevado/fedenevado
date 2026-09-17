@@ -1,6 +1,8 @@
 # Cantixplora
 
-App de organización social: calendario compartido, planes (viaje/comida/evento/plan casual), gastos con reparto parcial, chat, listas con plantillas, tareas de ruta compartibles con checklist propia, login con acceso de invitado sin cuenta. Mercado objetivo: España. Proyecto personal, sin prisa, prioriza calidad y accesibilidad sobre velocidad.
+App de organización social: calendario compartido, planes (viaje/comida/evento/plan casual), gastos con reparto parcial, chat, listas con plantillas, tareas de ruta compartibles con checklist propia. Mercado objetivo: España. Proyecto personal, sin prisa, prioriza calidad y accesibilidad sobre velocidad.
+
+**Pendiente, no implementado todavía:** login con acceso de invitado sin cuenta (unirse a un plan público desde un enlace, sin registrarse). No existe el enlace público, ni `GuestPlanPreview`, ni backend de invitación por link. Ver `docs/roadmap.md`.
 
 ## Estado del prototipo (referencia de comportamiento, no de código a copiar)
 
@@ -82,6 +84,7 @@ El `LoginScreen` del prototipo no valida nada de verdad — cualquier email/cont
 - [ ] Los filtros y estados de UI persisten correctamente al cambiar de pantalla y volver.
 - [ ] Checklist de accesibilidad de la fase correspondiente (ver `docs/roadmap.md`) marcado.
 - [ ] Probado en dispositivo real con Expo Go, no solo compilado.
+- [ ] Si alguna pantalla o comportamiento del prototipo (`docs/cantixplora-prototype.jsx`) depende de piezas de una fase futura y por eso no se implementa entera en esta fase, queda anotado explícitamente en `docs/progress.md` como "pendiente, depende de vX.X" (con qué falta y de qué fase depende) — nunca simplemente omitido en silencio. Ejemplo: si `InicioView` usa `CalendarView` y esta última aún no existe, no se implementa `InicioView` a medias sin dejar constancia de por qué.
 
 ## Gestión de contexto en sesiones largas
 

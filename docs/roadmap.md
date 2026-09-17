@@ -83,6 +83,13 @@ usuario.
   `new_message`, etc. — ver deuda aplazada en `docs/progress.md`). Push
   con Firebase Cloud Messaging.
 - **Onboarding**: primer arranque para una cuenta nueva.
+- **Acceso de invitado sin cuenta** (decisión del usuario, 2026-09-16,
+  tras auditoría contra el prototipo): pendiente antes de v1.0. No existe
+  todavía ni el enlace público, ni la pantalla `GuestPlanPreview`, ni
+  backend de invitación por link — sin esto, un plan público compartido
+  por enlace no se puede abrir de verdad por alguien sin cuenta. Distinto
+  de la aprobación de solicitudes de unión para planes privados (esa sí
+  entra en esta fase, ver `docs/progress.md`).
 - **Accesibilidad**: repaso completo VoiceOver/TalkBack de **todas** las
   pantallas (no solo la última tocada), WCAG 2.1 AA de principio a fin —
   incluye cerrar la deuda aplazada de fases anteriores.
@@ -96,6 +103,14 @@ usuario.
 - Enlace de invitación pública a un plan, planes públicos/privados con
   aprobación de solicitudes, invitado sin cuenta vía enlace, gestión de
   permisos de invitados (ver nota en v0.3).
+- **"El Plan" (itinerario de viaje)**: pestaña del detalle de plan del
+  prototipo (información importante, alojamiento, día a día con
+  actividades) — pendiente, post-v1.0. Decisión del usuario, 2026-09-16,
+  tras auditoría contra el prototipo: **esta pestaña se quedó fuera de
+  toda fase por omisión** (nunca se anotó como pendiente al cerrar v0.3,
+  a diferencia del resto de piezas de Planes que sí se dejaron en
+  backlog) y no se detectó hasta esta auditoría. Se anota aquí
+  explícitamente para que no se vuelva a perder.
 - Mejoras derivadas de uso real una vez haya usuarios probando la app.
 - Cualquier idea que surja durante el desarrollo y no encaje en la fase
   activa se anota aquí en lugar de implementarse fuera de orden.

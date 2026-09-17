@@ -126,6 +126,7 @@ export interface FriendSearchResult extends Friend {
 }
 
 export type PlanType = 'viaje' | 'comida' | 'evento' | 'plan_casual';
+export type PlanVisibility = 'publica' | 'privada';
 export type RsvpStatus = 'pending' | 'yes' | 'maybe' | 'no';
 
 export interface PlanParticipant {
@@ -146,6 +147,7 @@ export interface Plan {
   endDate: string | null;
   time: string | null;
   location: string | null;
+  visibility: PlanVisibility;
   participants: PlanParticipant[];
 }
 
@@ -156,7 +158,20 @@ export interface PlanInput {
   endDate?: string;
   time?: string;
   location?: string;
+  visibility?: PlanVisibility;
   invitedFriendIds?: string[];
+}
+
+export interface JoinRequestSummary {
+  id: string;
+  userId: string | null;
+  name: string;
+  requestedAt: string;
+}
+
+export interface JoinInvitationResult {
+  status: 'joined' | 'pending' | 'already_participant';
+  planId: string;
 }
 
 export interface ExpenseSplit {
@@ -323,6 +338,16 @@ export const api = {
     request<{ success: true }>(`/plans/${id}`, { method: 'DELETE' }, token),
   setRsvp: (token: string, id: string, status: Exclude<RsvpStatus, 'pending'>) =>
     request<Plan>(`/plans/${id}/rsvp`, { method: 'PATCH', body: JSON.stringify({ status }) }, token),
+  getOrCreateInvitation: (token: string, planId: string) =>
+    request<{ token: string }>(`/plans/${planId}/invitation`, { method: 'POST' }, token),
+  joinViaInvitation: (token: string, invitationToken: string) =>
+    request<JoinInvitationResult>(`/invitations/${invitationToken}/join`, { method: 'POST' }, token),
+  listJoinRequests: (token: string, planId: string) =>
+    request<JoinRequestSummary[]>(`/plans/${planId}/join-requests`, {}, token),
+  approveJoinRequest: (token: string, planId: string, requestId: string) =>
+    request<{ success: true }>(`/plans/${planId}/join-requests/${requestId}/approve`, { method: 'PATCH' }, token),
+  rejectJoinRequest: (token: string, planId: string, requestId: string) =>
+    request<{ success: true }>(`/plans/${planId}/join-requests/${requestId}/reject`, { method: 'PATCH' }, token),
   listExpenses: (token: string, planId: string) => request<Expense[]>(`/plans/${planId}/expenses`, {}, token),
   createExpense: (token: string, planId: string, input: ExpenseInput) =>
     request<Expense>(`/plans/${planId}/expenses`, { method: 'POST', body: JSON.stringify(input) }, token),

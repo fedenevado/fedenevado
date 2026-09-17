@@ -15,6 +15,9 @@ import {
 const PLAN_TYPES = ["viaje", "comida", "evento", "plan_casual"] as const;
 export type PlanTypeDto = (typeof PLAN_TYPES)[number];
 
+const PLAN_VISIBILITIES = ["publica", "privada"] as const;
+export type PlanVisibilityDto = (typeof PLAN_VISIBILITIES)[number];
+
 export class CreatePlanDto {
   @IsString()
   @IsNotEmpty()
@@ -23,6 +26,10 @@ export class CreatePlanDto {
 
   @IsIn(PLAN_TYPES)
   type!: PlanTypeDto;
+
+  @IsOptional()
+  @IsIn(PLAN_VISIBILITIES)
+  visibility?: PlanVisibilityDto;
 
   @IsDateString({ strict: true })
   startDate!: string;
