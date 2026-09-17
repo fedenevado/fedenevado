@@ -10,13 +10,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Redirect } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
 import { ApiError } from '@/api/client';
 
 type Mode = 'login' | 'signup';
 
 export default function LoginScreen() {
+  const router = useRouter();
   const { token, login, register } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [name, setName] = useState('');
@@ -126,6 +127,17 @@ export default function LoginScreen() {
             onSubmitEditing={submit}
           />
 
+          {mode === 'login' && (
+            <Pressable
+              onPress={() => router.push('/forgot-password')}
+              accessibilityRole="button"
+              accessibilityLabel="¿Olvidaste tu contraseña?"
+              style={styles.forgotPasswordLink}
+            >
+              <Text style={styles.forgotPasswordLabel}>¿Olvidaste tu contraseña?</Text>
+            </Pressable>
+          )}
+
           {error && (
             <Text style={styles.error} accessibilityLiveRegion="polite" role="alert">
               {error}
@@ -179,6 +191,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
+  forgotPasswordLink: { minHeight: 44, justifyContent: 'center', alignItems: 'flex-end', marginBottom: 4 },
+  forgotPasswordLabel: { fontSize: 13, color: '#161B2E', fontWeight: '600' },
   button: {
     minHeight: 44,
     backgroundColor: '#161B2E',

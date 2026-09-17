@@ -9,7 +9,58 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
+interface SessionRefreshHandlers {
+  getRefreshToken: () => string | null;
+  onRefreshed: (accessToken: string, refreshToken: string) => void;
+  onRefreshFailed: () => void;
+}
+
+let sessionRefreshHandlers: SessionRefreshHandlers | null = null;
+let refreshInFlight: Promise<string | null> | null = null;
+
+// Permite que auth-context.tsx conecte la renovación automática de sesión sin
+// que este módulo dependa directamente de React ni del contexto de auth.
+export function setSessionRefreshHandlers(handlers: SessionRefreshHandlers | null) {
+  sessionRefreshHandlers = handlers;
+}
+
+// Si varias peticiones caducan a la vez, solo se refresca una vez y las demás
+// esperan ese mismo resultado (los refresh tokens de Supabase rotan: usar el
+// mismo token dos veces invalidaría el segundo intento).
+async function refreshAccessToken(): Promise<string | null> {
+  if (!sessionRefreshHandlers) return null;
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const refreshToken = sessionRefreshHandlers?.getRefreshToken();
+      if (!refreshToken) return null;
+      try {
+        const result = await request<{ accessToken: string; refreshToken: string }>(
+          '/auth/refresh',
+          { method: 'POST', body: JSON.stringify({ refreshToken }) },
+        );
+        sessionRefreshHandlers?.onRefreshed(result.accessToken, result.refreshToken);
+        return result.accessToken;
+      } catch (err) {
+        // Un fallo de red no significa que la sesión sea inválida: solo se
+        // cierra sesión cuando el servidor rechaza explícitamente el refresh token.
+        if (err instanceof ApiError) {
+          sessionRefreshHandlers?.onRefreshFailed();
+        }
+        return null;
+      }
+    })().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+  token?: string | null,
+  isRetry = false,
+): Promise<T> {
   if (!API_URL) {
     throw new Error(
       'Falta EXPO_PUBLIC_API_URL. Configúralo en apps/mobile/.env (ver .env.example).',
@@ -25,6 +76,13 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
     },
   });
 
+  if (response.status === 401 && token && !isRetry && path !== '/auth/refresh') {
+    const newAccessToken = await refreshAccessToken();
+    if (newAccessToken) {
+      return request<T>(path, options, newAccessToken, true);
+    }
+  }
+
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
@@ -37,6 +95,7 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
 
 export interface AuthResponse {
   accessToken: string;
+  refreshToken: string;
   user: { id: string; name: string; email: string };
 }
 
@@ -177,6 +236,18 @@ export const api = {
     request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
   login: (email: string, password: string) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  forgotPassword: (email: string) =>
+    request<{ success: true }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (accessToken: string, newPassword: string) =>
+    request<AuthResponse>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ accessToken, newPassword }),
+    }),
+  refresh: (refreshToken: string) =>
+    request<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    }),
   me: (token: string) => request<MeResponse>('/users/me', {}, token),
   listFriends: (token: string) => request<Friend[]>('/friendships', {}, token),
   listFriendRequests: (token: string) => request<PendingRequest[]>('/friendships/requests', {}, token),
