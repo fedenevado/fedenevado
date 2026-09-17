@@ -36,6 +36,7 @@ function buildService(overrides: {
   paymentDeleteMany?: jest.Mock;
   planFieldConfigUpsert?: jest.Mock;
   notificationCreate?: jest.Mock;
+  notificationCreateMany?: jest.Mock;
 }) {
   const prisma: any = {
     plan: { findUnique: overrides.planFindUnique ?? jest.fn().mockResolvedValue(samplePlan()) },
@@ -53,7 +54,10 @@ function buildService(overrides: {
       deleteMany: overrides.paymentDeleteMany ?? jest.fn(),
     },
     planFieldConfig: { upsert: overrides.planFieldConfigUpsert ?? jest.fn() },
-    notification: { create: overrides.notificationCreate ?? jest.fn() },
+    notification: {
+      create: overrides.notificationCreate ?? jest.fn(),
+      createMany: overrides.notificationCreateMany ?? jest.fn(),
+    },
   };
   return { service: new ExpensesService(prisma), prisma };
 }
@@ -143,6 +147,33 @@ describe("ExpensesService", () => {
       );
       expect(result.amount).toBe(30);
       expect(result.splits).toHaveLength(2);
+    });
+
+    it("notifica a los demás participantes del plan, pero no a quien creó el gasto", async () => {
+      const expenseCreate = jest.fn().mockResolvedValue({
+        id: "e1",
+        description: "Cena",
+        amount: "30",
+        paidBy: "owner",
+        payer: { name: "Ana" },
+        createdAt: new Date("2026-10-01T00:00:00.000Z"),
+        splits: [{ userId: "owner", amountOwed: "30", user: { name: "Ana" } }],
+      });
+      const { service, prisma } = buildService({ expenseCreate });
+
+      await service.createExpense("owner", "plan-1", {
+        description: "Cena",
+        amount: 30,
+        paidBy: "owner",
+        splitWith: ["owner"],
+      });
+
+      expect(prisma.notification.createMany).toHaveBeenCalledWith({
+        data: [
+          { userId: "user-2", type: "new_expense", planId: "plan-1", actorId: "owner" },
+          { userId: "user-3", type: "new_expense", planId: "plan-1", actorId: "owner" },
+        ],
+      });
     });
   });
 

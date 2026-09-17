@@ -263,6 +263,28 @@ export interface ReminderInput {
   items?: string[];
 }
 
+export type NotificationTargetTab = 'detalles' | 'gastos' | 'chat';
+
+export type AppNotificationType =
+  | 'plan_invite'
+  | 'rsvp_reminder'
+  | 'plan_updated'
+  | 'join_request_received'
+  | 'join_request_approved'
+  | 'new_expense'
+  | 'expense_settled'
+  | 'new_message';
+
+export interface AppNotification {
+  id: string;
+  read: boolean;
+  createdAt: string;
+  message: string;
+  planId: string;
+  targetTab: NotificationTargetTab;
+  type: AppNotificationType;
+}
+
 export const api = {
   register: (name: string, email: string, password: string) =>
     request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
@@ -374,4 +396,9 @@ export const api = {
     request<Reminder>(`/reminders/${id}/items/${itemId}`, { method: 'PATCH', body: JSON.stringify({ done }) }, token),
   deleteReminderItem: (token: string, id: string, itemId: string) =>
     request<Reminder>(`/reminders/${id}/items/${itemId}`, { method: 'DELETE' }, token),
+  listNotifications: (token: string) => request<AppNotification[]>('/notifications', {}, token),
+  markNotificationRead: (token: string, id: string) =>
+    request<{ success: true }>(`/notifications/${id}/read`, { method: 'PATCH' }, token),
+  markAllNotificationsRead: (token: string) =>
+    request<{ success: true }>('/notifications/read-all', { method: 'PATCH' }, token),
 };

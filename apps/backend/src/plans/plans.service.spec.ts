@@ -12,6 +12,7 @@ function buildService(overrides: {
   participantUpdate?: jest.Mock;
   participantDeleteMany?: jest.Mock;
   participantCreateMany?: jest.Mock;
+  notificationCreateMany?: jest.Mock;
 }) {
   const prisma: any = {
     plan: {
@@ -29,6 +30,9 @@ function buildService(overrides: {
       update: overrides.participantUpdate ?? jest.fn(),
       deleteMany: overrides.participantDeleteMany ?? jest.fn(),
       createMany: overrides.participantCreateMany ?? jest.fn(),
+    },
+    notification: {
+      createMany: overrides.notificationCreateMany ?? jest.fn(),
     },
   };
   return { service: new PlansService(prisma), prisma };
@@ -134,6 +138,25 @@ describe("PlansService", () => {
         }),
       );
     });
+
+    it("notifica (plan_invite) a los amigos invitados, no a quien crea el plan", async () => {
+      const friendshipFindMany = jest.fn().mockResolvedValue([
+        { requesterId: "user-1", addresseeId: "user-2", status: "accepted" },
+      ]);
+      const planCreate = jest.fn().mockResolvedValue(samplePlan());
+      const { service, prisma } = buildService({ friendshipFindMany, planCreate });
+
+      await service.createPlan("user-1", {
+        title: "Finde en Sintra",
+        type: "viaje",
+        startDate: "2026-10-03",
+        invitedFriendIds: ["user-2"],
+      } as any);
+
+      expect(prisma.notification.createMany).toHaveBeenCalledWith({
+        data: [{ userId: "user-2", type: "plan_invite", planId: "plan-1", actorId: "user-1" }],
+      });
+    });
   });
 
   describe("updatePlan", () => {
@@ -149,6 +172,22 @@ describe("PlansService", () => {
       await expect(service.updatePlan("user-1", "plan-1", { title: "Nuevo" } as any)).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it("notifica (plan_invite) solo a quien se invita de nuevo, no a quien ya estaba", async () => {
+      const existingGuest = { id: "p2", userId: "user-2", guestName: null, role: "guest", rsvpStatus: "pending", user: { id: "user-2", name: "Bob", avatarUrl: null } };
+      const friendshipFindMany = jest.fn().mockResolvedValue([
+        { requesterId: "user-1", addresseeId: "user-2", status: "accepted" },
+        { requesterId: "user-1", addresseeId: "user-3", status: "accepted" },
+      ]);
+      const planFindUnique = jest.fn().mockResolvedValue(samplePlan({ participants: [owner, existingGuest] }));
+      const { service, prisma } = buildService({ planFindUnique, friendshipFindMany });
+
+      await service.updatePlan("user-1", "plan-1", { invitedFriendIds: ["user-2", "user-3"] } as any);
+
+      expect(prisma.notification.createMany).toHaveBeenCalledWith({
+        data: [{ userId: "user-3", type: "plan_invite", planId: "plan-1", actorId: "user-1" }],
+      });
     });
   });
 

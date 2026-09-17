@@ -216,6 +216,23 @@ export class ExpensesService {
       include: EXPENSE_INCLUDE,
     });
 
+    // Se avisa a todos los demás participantes del plan (no solo a quienes
+    // están en el reparto): igual que la visibilidad de gastos, cualquier
+    // participante puede ver que se añadió uno nuevo aunque no le afecte.
+    const recipients = plan.participants
+      .map((p) => p.userId)
+      .filter((participantId): participantId is string => !!participantId && participantId !== userId);
+    if (recipients.length > 0) {
+      await this.prisma.notification.createMany({
+        data: recipients.map((recipientId) => ({
+          userId: recipientId,
+          type: "new_expense" as const,
+          planId,
+          actorId: userId,
+        })),
+      });
+    }
+
     return toExpenseSummary(expense);
   }
 

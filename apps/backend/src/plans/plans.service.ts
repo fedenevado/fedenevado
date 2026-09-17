@@ -145,6 +145,17 @@ export class PlansService {
       include: PLAN_INCLUDE,
     });
 
+    if (friendIds.length > 0) {
+      await this.prisma.notification.createMany({
+        data: friendIds.map((friendId) => ({
+          userId: friendId,
+          type: "plan_invite" as const,
+          planId: plan.id,
+          actorId: userId,
+        })),
+      });
+    }
+
     return toSummary(plan);
   }
 
@@ -206,6 +217,16 @@ export class PlansService {
       if (toAdd.length > 0) {
         await this.prisma.planParticipant.createMany({
           data: toAdd.map((id) => ({ planId, userId: id, role: "guest", rsvpStatus: "pending" })),
+        });
+        // Solo se notifica a quien se invita de nuevo, no a todo el mundo
+        // cada vez que se edita el plan.
+        await this.prisma.notification.createMany({
+          data: toAdd.map((friendId) => ({
+            userId: friendId,
+            type: "plan_invite" as const,
+            planId,
+            actorId: userId,
+          })),
         });
       }
     }

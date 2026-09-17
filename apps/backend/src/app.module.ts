@@ -12,6 +12,7 @@ import { ListsModule } from "./lists/lists.module";
 import { ListTemplatesModule } from "./list-templates/list-templates.module";
 import { ChatModule } from "./chat/chat.module";
 import { RemindersModule } from "./reminders/reminders.module";
+import { NotificationsModule } from "./notifications/notifications.module";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { RemindersModule } from "./reminders/reminders.module";
     ListTemplatesModule,
     ChatModule,
     RemindersModule,
+    NotificationsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
