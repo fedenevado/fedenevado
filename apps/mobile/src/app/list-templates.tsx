@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type ListTemplate } from '@/api/client';
@@ -106,7 +116,7 @@ export default function ListTemplatesScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
         <Pressable
           onPress={() => router.back()}
@@ -128,7 +138,7 @@ export default function ListTemplatesScreen() {
       {isLoading ? (
         <ActivityIndicator style={styles.loading} accessibilityLabel="Cargando plantillas" />
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           {templates.length === 0 && !showForm && (
             <Text style={styles.emptyText}>
               Aún no tienes plantillas guardadas. Se crean desde las listas de un plan, o aquí mismo.
@@ -284,7 +294,7 @@ export default function ListTemplatesScreen() {
           </View>
         </View>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -336,7 +346,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     minWidth: 44,
     borderRadius: 8,
-    backgroundColor: '#F5F5F3',
+    backgroundColor: '#F5F5F2',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { Redirect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type Friend, type PlanType } from '@/api/client';
@@ -104,7 +114,7 @@ export default function PlanFormScreen() {
   const filteredFriends = friends.filter((f) => f.name.toLowerCase().includes(friendSearch.toLowerCase()));
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
         <Pressable
           onPress={() => router.back()}
@@ -132,7 +142,7 @@ export default function PlanFormScreen() {
       {isLoading ? (
         <ActivityIndicator style={styles.loading} accessibilityLabel="Cargando" />
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           {step === 1 && (
             <>
               <Text style={styles.label}>Título</Text>
@@ -297,7 +307,7 @@ export default function PlanFormScreen() {
           )}
         </ScrollView>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
