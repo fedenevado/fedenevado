@@ -25,6 +25,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [justRegistered, setJustRegistered] = useState(false);
 
   function validate(): string | null {
     if (mode === 'signup' && !name.trim()) return 'Escribe tu nombre completo.';
@@ -45,11 +46,13 @@ export default function LoginScreen() {
     setIsSubmitting(true);
     try {
       if (mode === 'signup') {
+        setJustRegistered(true);
         await register(name.trim(), email.trim(), password);
       } else {
         await login(email.trim(), password);
       }
     } catch (err) {
+      setJustRegistered(false);
       setError(err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.');
     } finally {
       setIsSubmitting(false);
@@ -57,7 +60,7 @@ export default function LoginScreen() {
   }
 
   if (token) {
-    return <Redirect href="/home" />;
+    return <Redirect href={justRegistered ? '/onboarding' : '/home'} />;
   }
 
   return (
