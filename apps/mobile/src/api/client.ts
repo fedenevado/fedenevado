@@ -174,6 +174,27 @@ export interface JoinInvitationResult {
   planId: string;
 }
 
+export type GuestListVisibility = 'hidden' | 'public_count' | 'public_full';
+
+export interface InvitationPreview {
+  planId: string;
+  title: string;
+  type: PlanType;
+  startDate: string;
+  endDate: string | null;
+  time: string | null;
+  location: string | null;
+  organizerName: string;
+  guestListVisibility: GuestListVisibility;
+  confirmedCount: number | null;
+  confirmedPreview: { name: string }[] | null;
+}
+
+export interface GuestJoinResult {
+  status: 'joined' | 'pending';
+  planId: string;
+}
+
 export interface ExpenseSplit {
   userId: string;
   name: string;
@@ -342,6 +363,14 @@ export const api = {
     request<{ token: string }>(`/plans/${planId}/invitation`, { method: 'POST' }, token),
   joinViaInvitation: (token: string, invitationToken: string) =>
     request<JoinInvitationResult>(`/invitations/${invitationToken}/join`, { method: 'POST' }, token),
+  // Endpoints públicos: sin token, accesibles sin cuenta desde el enlace de invitación.
+  getInvitationPreview: (invitationToken: string) =>
+    request<InvitationPreview>(`/invitations/${invitationToken}/preview`),
+  joinAsGuestViaInvitation: (invitationToken: string, guestName: string) =>
+    request<GuestJoinResult>(`/invitations/${invitationToken}/guest-join`, {
+      method: 'POST',
+      body: JSON.stringify({ guestName }),
+    }),
   listJoinRequests: (token: string, planId: string) =>
     request<JoinRequestSummary[]>(`/plans/${planId}/join-requests`, {}, token),
   approveJoinRequest: (token: string, planId: string, requestId: string) =>

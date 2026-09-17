@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { PlansService } from "./plans.service";
 
 function buildService(overrides: {
@@ -390,6 +390,141 @@ describe("PlansService", () => {
       expect(result).toEqual({ status: "pending", planId: "plan-1" });
       expect(prisma.joinRequest.create).not.toHaveBeenCalled();
       expect(prisma.notification.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("previewInvitation", () => {
+    function invitationWithConfig(overrides: Partial<Record<string, unknown>> = {}) {
+      return {
+        id: "inv-1",
+        planId: "plan-1",
+        revoked: false,
+        expiresAt: null,
+        plan: {
+          ...samplePlan(),
+          owner: { id: "user-1", name: "Ana García" },
+          config: null,
+          participants: [
+            owner,
+            { id: "p2", userId: "user-2", guestName: null, rsvpStatus: "yes", user: { id: "user-2", name: "Bea" } },
+            { id: "p3", userId: "user-3", guestName: null, rsvpStatus: "pending", user: { id: "user-3", name: "Caro" } },
+          ],
+        },
+        ...overrides,
+      };
+    }
+
+    it("lanza NotFoundException si el token no existe, está revocado o caducado", async () => {
+      const { service } = buildService({ invitationFindUnique: jest.fn().mockResolvedValue(null) });
+      await expect(service.previewInvitation("bad-token")).rejects.toThrow(NotFoundException);
+    });
+
+    it("sin config, usa public_full por defecto y devuelve hasta 6 confirmados", async () => {
+      const { service } = buildService({
+        invitationFindUnique: jest.fn().mockResolvedValue(invitationWithConfig()),
+      });
+
+      const result = await service.previewInvitation("token-1");
+
+      expect(result.organizerName).toBe("Ana García");
+      expect(result.guestListVisibility).toBe("public_full");
+      expect(result.confirmedCount).toBe(2);
+      expect(result.confirmedPreview).toEqual([{ name: "Ana" }, { name: "Bea" }]);
+    });
+
+    it("con guestListVisibility hidden, no devuelve ni conteo ni nombres", async () => {
+      const invitation = invitationWithConfig();
+      invitation.plan.config = { guestListVisibility: "hidden" } as never;
+      const { service } = buildService({ invitationFindUnique: jest.fn().mockResolvedValue(invitation) });
+
+      const result = await service.previewInvitation("token-1");
+
+      expect(result.confirmedCount).toBeNull();
+      expect(result.confirmedPreview).toBeNull();
+    });
+
+    it("con guestListVisibility public_count, devuelve el conteo pero no los nombres", async () => {
+      const invitation = invitationWithConfig();
+      invitation.plan.config = { guestListVisibility: "public_count" } as never;
+      const { service } = buildService({ invitationFindUnique: jest.fn().mockResolvedValue(invitation) });
+
+      const result = await service.previewInvitation("token-1");
+
+      expect(result.confirmedCount).toBe(2);
+      expect(result.confirmedPreview).toBeNull();
+    });
+  });
+
+  describe("joinAsGuest", () => {
+    it("lanza NotFoundException si el token no existe, está revocado o caducado", async () => {
+      const { service } = buildService({ invitationFindUnique: jest.fn().mockResolvedValue(null) });
+      await expect(service.joinAsGuest("bad-token", "Nuria")).rejects.toThrow(NotFoundException);
+    });
+
+    it("lanza BadRequestException si el nombre está vacío tras recortar espacios", async () => {
+      const invitation = {
+        id: "inv-1",
+        planId: "plan-1",
+        revoked: false,
+        expiresAt: null,
+        plan: { ...samplePlan({ visibility: "publica" }), owner: { id: "user-1", name: "Ana" }, config: null },
+      };
+      const { service } = buildService({ invitationFindUnique: jest.fn().mockResolvedValue(invitation) });
+      await expect(service.joinAsGuest("token-1", "   ")).rejects.toThrow(BadRequestException);
+    });
+
+    it("une directo como invitado confirmado (yes) a un plan público e incrementa usesCount", async () => {
+      const invitation = {
+        id: "inv-1",
+        planId: "plan-1",
+        revoked: false,
+        expiresAt: null,
+        plan: { ...samplePlan({ visibility: "publica" }), owner: { id: "user-1", name: "Ana" }, config: null },
+      };
+      const { service, prisma } = buildService({
+        invitationFindUnique: jest.fn().mockResolvedValue(invitation),
+      });
+
+      const result = await service.joinAsGuest("token-1", "  Nuria  ");
+
+      expect(result).toEqual({ status: "joined", planId: "plan-1" });
+      expect(prisma.planParticipant.create).toHaveBeenCalledWith({
+        data: {
+          planId: "plan-1",
+          guestName: "Nuria",
+          role: "guest",
+          rsvpStatus: "yes",
+          invitationId: "inv-1",
+        },
+      });
+      expect(prisma.invitation.update).toHaveBeenCalledWith({
+        where: { id: "inv-1" },
+        data: { usesCount: { increment: 1 } },
+      });
+    });
+
+    it("crea una JoinRequest pendiente sin actor y notifica al owner si el plan es privado", async () => {
+      const invitation = {
+        id: "inv-1",
+        planId: "plan-1",
+        revoked: false,
+        expiresAt: null,
+        plan: { ...samplePlan({ visibility: "privada" }), owner: { id: "user-1", name: "Ana" }, config: null },
+      };
+      const { service, prisma } = buildService({
+        invitationFindUnique: jest.fn().mockResolvedValue(invitation),
+      });
+
+      const result = await service.joinAsGuest("token-1", "Nuria");
+
+      expect(result).toEqual({ status: "pending", planId: "plan-1" });
+      expect(prisma.joinRequest.create).toHaveBeenCalledWith({
+        data: { planId: "plan-1", guestName: "Nuria", status: "pending" },
+      });
+      expect(prisma.notification.create).toHaveBeenCalledWith({
+        data: { userId: "user-1", type: "join_request_received", planId: "plan-1", actorId: null },
+      });
+      expect(prisma.planParticipant.create).not.toHaveBeenCalled();
     });
   });
 

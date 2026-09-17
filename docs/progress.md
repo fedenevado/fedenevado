@@ -202,6 +202,128 @@ iniciar sesión con una cuenta existente), que "Saltar" funciona en ambos
 pasos, y que enviar/aceptar solicitudes desde ahí deja el mismo estado que
 se vería luego en la pantalla Amigos.
 
+### Paso E' — Acceso de invitado sin cuenta (`GuestPlanPreview`): implementado y verificado contra el backend/DB reales (2026-09-17)
+
+Pendiente marcado explícitamente en `CLAUDE.md` y `docs/roadmap.md` desde la
+auditoría del 2026-09-16 ("no existe todavía ni el enlace público, ni la
+pantalla `GuestPlanPreview`, ni backend de invitación por link"). Implementado
+a petición explícita del usuario, revisando antes el comportamiento exacto
+del componente `GuestPlanPreview` en `docs/cantixplora-prototype.jsx`.
+
+**Backend** (`apps/backend/src/plans/`):
+- `InvitationsController` dejó de tener el guard a nivel de clase: ahora solo
+  `POST /invitations/:token/join` (autenticado) lleva
+  `@UseGuards(SupabaseAuthGuard)`. Dos rutas nuevas, públicas (sin cuenta),
+  cada una con su propio `@Throttle` más estricto que el límite global
+  (60/min) por ser endpoints públicos, tal como exige `CLAUDE.md`:
+  - `GET /invitations/:token/preview` (20/min) — vista previa de solo
+    lectura. Nunca expone `visibility`, `userId` ni email de nadie: solo
+    `title/type/startDate/endDate/time/location/organizerName` y, según
+    `PlanFieldConfig.guestListVisibility` (`hidden` → ninguna info de
+    confirmados; `public_count` → solo el número; `public_full` → número +
+    hasta 6 nombres, igual que el `slice(0,6)` del prototipo). Como nada crea
+    todavía una fila en `plan_field_configs` (gap ya existente, no de esta
+    sesión), se usa el default del schema (`public_full`) cuando `config` es
+    `null`.
+  - `POST /invitations/:token/guest-join` (5/min) — `JoinAsGuestDto` (
+    `guestName`, `@MaxLength(60)`), recortado en el servidor antes de usarlo
+    (nunca se confía en el recorte del cliente). Plan público → crea
+    `PlanParticipant` directo con `guestName`, `role: guest` y
+    **`rsvpStatus: "yes"`** (a diferencia del invitado autenticado, que entra
+    en `pending`: aquí el propio nombre en "¿Vienes?" del prototipo *es* la
+    confirmación, no un paso aparte) e incrementa `usesCount` de la
+    invitación. Plan privado → crea una `JoinRequest` con `guestName` (sin
+    `userId`) y notifica al owner (`join_request_received`, `actorId: null`)
+    — reutiliza sin tocarlo el `approveJoinRequest`/`rejectJoinRequest` ya
+    existentes, que ya soportaban `guestName` desde que se construyeron en la
+    sesión anterior. `NotificationsService.buildMessage` ya usa "Alguien"
+    como fallback cuando `actorId` es `null` — no hizo falta tocarlo, aunque
+    el mensaje resultante ("Alguien quiere unirse a...") no usa el nombre
+    real del invitado por no haber un campo para guardarlo en `Notification`
+    (limitación conocida, no se tocó el schema sin pedirlo).
+  - 8 tests unitarios nuevos en `plans.service.spec.ts` (`previewInvitation`:
+    token inválido, sin config/`public_full`, `hidden`, `public_count`;
+    `joinAsGuest`: token inválido, nombre vacío tras recortar, unión directa
+    a plan público, `JoinRequest` pendiente sin actor en plan privado).
+
+**Mobile** (`apps/mobile/src/app/invite/[token].tsx`): el archivo ya existía
+(sesión anterior) pero solo cubría el caso autenticado — si no había sesión,
+mostraba un simple botón "Inicia sesión". Se sustituyó esa rama por la
+vista `GuestPlanPreview` completa: cabecera de color por tipo de plan (igual
+patrón que la cabecera de `plan/[id].tsx`) con "Iniciar sesión" arriba a la
+derecha, confirmados según `guestListVisibility`, tarjeta "¿Vienes?" (nombre
++ "Unirme al plan") y, tras unirse, "¡Te has unido!" + "Crear cuenta" (plan
+público) o "Solicitud enviada" (plan privado) — ambos llevan a `/login`. La
+rama ya autenticada (auto-join al abrir el enlace) no se tocó. Nuevos tipos/
+métodos en `api/client.ts`: `InvitationPreview`, `GuestJoinResult`,
+`getInvitationPreview`, `joinAsGuestViaInvitation` (sin token de auth, hacia
+los dos endpoints públicos nuevos). Accesibilidad incluida en esta misma
+pasada (no aplazada): `accessibilityLabel` en los botones nuevos, avatares
+decorativos marcados `accessibilityElementsHidden` (la cuenta ya se anuncia
+como texto aparte), área táctil ≥44pt.
+
+**Explícitamente fuera de alcance** (decisión tomada en esta sesión, no
+omitida en silencio):
+- Sin enlace entre el `PlanParticipant`/`JoinRequest` del invitado y la
+  cuenta que cree después — igual que el prototipo, "Crear cuenta" solo abre
+  login/registro, sin fusionar identidades.
+- Sin estado persistido de "ya me uní como invitado" si cierra la app y
+  vuelve a abrir el mismo enlace — el prototipo tampoco lo tiene. Podría
+  unirse dos veces como invitados distintos; el rate-limit (5/min) es la
+  única mitigación, no hay deduplicación.
+- No se ha tocado el gap ya existente (de antes de esta sesión) de que
+  `guestListVisibility` **no** se aplica todavía para participantes
+  autenticados viendo `GuestListSheet` (siempre ven la lista completa) — solo
+  se ha aplicado para este endpoint público nuevo, que es lo que se pidió.
+
+Evidencia:
+```
+$ pnpm --filter backend test
+Test Suites: 10 passed, 10 total
+Tests:       110 passed, 110 total   (antes: 102 — +8 de invitado sin cuenta)
+
+$ pnpm --filter backend build   → sin errores
+$ npx prisma validate           → válido, sin migración
+
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json
+(sin salida — sin errores de tipos)
+
+$ npx expo export --platform android
+Android Bundled 41685ms node_modules/expo-router/entry.js (3251 modules)
+Exported: dist
+```
+
+**Verificado contra el backend/DB reales en esta sesión** (cuenta QA
+desechable `qa-guest-owner@example.com`, creada en esta sesión; planes y
+filas de prueba borrados al terminar, sin rastro):
+- Plan público "QA Cena publica": `GET /invitations/:token/preview` **sin
+  ningún header de autenticación** → `200` con los datos del plan y 1
+  confirmado (el owner). `POST .../guest-join` con nombre en blanco (`"   "`)
+  → `400` ("Escribe tu nombre."), sin crear nada. Con nombre real → `200
+  {status:"joined"}`; el preview inmediatamente después ya muestra 2
+  confirmados, incluyendo al invitado nuevo. **Confirmado.**
+- Mismo plan, probando las 3 variantes de `guestListVisibility` insertando
+  la fila en `plan_field_configs` directamente por SQL (no hay endpoint
+  todavía que la exponga): `hidden` → `confirmedCount: null,
+  confirmedPreview: null`; `public_count` → cuenta pero sin nombres;
+  `public_full` (default) → cuenta + nombres. **Confirmado.**
+- Plan privado "QA Viaje privado": `POST .../guest-join` sin cuenta → `200
+  {status:"pending"}`; verificado por `psql` que se creó la fila en
+  `join_requests` con `guest_name` (sin `user_id`) y la notificación al owner
+  con `actor_id NULL`; el owner la ve en `GET /plans/:id/join-requests` y al
+  aprobarla (`PATCH .../approve`) el invitado aparece como participante
+  (`guestName`, sin `userId`) en `GET /plans/:id`. **Confirmado.**
+- Rate-limit del endpoint público: varias llamadas seguidas a
+  `POST .../guest-join` en la misma ventana de un minuto devolvieron `429`
+  sin llegar a tocar la base de datos (verificado por `psql`: no se creó
+  ninguna fila de las llamadas rechazadas). **Confirmado.**
+
+**No verificado todavía (requiere tu dispositivo)**: abrir el enlace de
+invitación real en un dispositivo/sesión sin haber iniciado sesión (o en
+incógnito) y completar el flujo visual completo — ver pasos de prueba abajo.
+Checklist de accesibilidad VoiceOver/TalkBack de esta pantalla tampoco
+confirmado todavía.
+
 ### Paso extra — Barra de navegación inferior fija (pedido explícito del usuario, 2026-09-15)
 
 El usuario pidió sustituir la fila de botones de texto (Planes/Amigos/

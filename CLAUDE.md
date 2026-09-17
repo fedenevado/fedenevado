@@ -1,8 +1,6 @@
 # Cantixplora
 
-App de organización social: calendario compartido, planes (viaje/comida/evento/plan casual), gastos con reparto parcial, chat, listas con plantillas, tareas de ruta compartibles con checklist propia. Mercado objetivo: España. Proyecto personal, sin prisa, prioriza calidad y accesibilidad sobre velocidad.
-
-**Pendiente, no implementado todavía:** login con acceso de invitado sin cuenta (unirse a un plan público desde un enlace, sin registrarse). No existe el enlace público, ni `GuestPlanPreview`, ni backend de invitación por link. Ver `docs/roadmap.md`.
+App de organización social: calendario compartido, planes (viaje/comida/evento/plan casual), gastos con reparto parcial, chat, listas con plantillas, tareas de ruta compartibles con checklist propia, login con acceso de invitado sin cuenta. Mercado objetivo: España. Proyecto personal, sin prisa, prioriza calidad y accesibilidad sobre velocidad.
 
 ## Estado del prototipo (referencia de comportamiento, no de código a copiar)
 

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
@@ -41,6 +41,25 @@ export interface JoinRequestSummary {
 
 export interface JoinInvitationResult {
   status: "joined" | "pending" | "already_participant";
+  planId: string;
+}
+
+export interface InvitationPreview {
+  planId: string;
+  title: string;
+  type: string;
+  startDate: string;
+  endDate: string | null;
+  time: string | null;
+  location: string | null;
+  organizerName: string;
+  guestListVisibility: string;
+  confirmedCount: number | null;
+  confirmedPreview: { name: string }[] | null;
+}
+
+export interface GuestJoinResult {
+  status: "joined" | "pending";
   planId: string;
 }
 
@@ -352,6 +371,88 @@ export class PlansService {
           userId,
           role: "guest",
           rsvpStatus: "pending",
+          invitationId: invitation.id,
+        },
+      }),
+      this.prisma.invitation.update({
+        where: { id: invitation.id },
+        data: { usesCount: { increment: 1 } },
+      }),
+    ]);
+
+    return { status: "joined", planId: invitation.planId };
+  }
+
+  // Usado por los endpoints públicos (sin cuenta): a diferencia de
+  // joinViaInvitationToken, aquí no hay userId que comprobar contra
+  // participantes existentes, así que solo se valida que el enlace siga
+  // siendo válido.
+  private async getValidInvitationForGuest(token: string) {
+    const invitation = await this.prisma.invitation.findUnique({
+      where: { token },
+      include: { plan: { include: { owner: true, config: true, participants: { include: { user: true } } } } },
+    });
+    if (!invitation || invitation.revoked || (invitation.expiresAt && invitation.expiresAt < new Date())) {
+      throw new NotFoundException("Enlace de invitación no válido o caducado.");
+    }
+    return invitation;
+  }
+
+  async previewInvitation(token: string): Promise<InvitationPreview> {
+    const invitation = await this.getValidInvitationForGuest(token);
+    const plan = invitation.plan;
+
+    const guestListVisibility = plan.config?.guestListVisibility ?? "public_full";
+    const confirmed = plan.participants.filter((p) => p.rsvpStatus === "yes");
+
+    return {
+      planId: plan.id,
+      title: plan.title,
+      type: plan.type,
+      startDate: formatDate(plan.startDate),
+      endDate: plan.endDate ? formatDate(plan.endDate) : null,
+      time: plan.time,
+      location: plan.location,
+      organizerName: plan.owner.name,
+      guestListVisibility,
+      confirmedCount: guestListVisibility === "hidden" ? null : confirmed.length,
+      confirmedPreview:
+        guestListVisibility === "public_full"
+          ? confirmed.slice(0, 6).map((p) => ({ name: p.user?.name ?? p.guestName ?? "" }))
+          : null,
+    };
+  }
+
+  async joinAsGuest(token: string, guestNameInput: string): Promise<GuestJoinResult> {
+    const guestName = guestNameInput.trim();
+    if (!guestName) {
+      throw new BadRequestException("Escribe tu nombre.");
+    }
+
+    const invitation = await this.getValidInvitationForGuest(token);
+
+    if (invitation.plan.visibility === "privada") {
+      await this.prisma.joinRequest.create({
+        data: { planId: invitation.planId, guestName, status: "pending" },
+      });
+      await this.prisma.notification.create({
+        data: {
+          userId: invitation.plan.ownerId,
+          type: "join_request_received",
+          planId: invitation.planId,
+          actorId: null,
+        },
+      });
+      return { status: "pending", planId: invitation.planId };
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.planParticipant.create({
+        data: {
+          planId: invitation.planId,
+          guestName,
+          role: "guest",
+          rsvpStatus: "yes",
           invitationId: invitation.id,
         },
       }),
