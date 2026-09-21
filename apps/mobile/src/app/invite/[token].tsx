@@ -1,22 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type InvitationPreview } from '@/api/client';
 import { formatPlanDate, planTypeColor, planTypeLabel } from '@/plans/plan-types';
+import { loginWithInviteHref } from '@/invite/invite-token';
 
 type Status = 'loading' | 'joined' | 'pending' | 'error';
-type GuestJoinStatus = 'idle' | 'submitting' | 'joined' | 'pending' | 'error';
 
 function planHref(id: string): Href {
   return `/plan/${id}` as Href;
@@ -62,11 +52,11 @@ export default function InvitationScreen() {
   }, [authToken, join]);
 
   // Sin cuenta: vista previa pública del plan (GuestPlanPreview del prototipo).
+  // A diferencia del prototipo, aquí no hay "unirse como invitado": no deja
+  // ningún registro y solo lleva a crear cuenta (o iniciar sesión) con este
+  // mismo enlace, y es entonces cuando la rama autenticada de abajo une al plan.
   const [preview, setPreview] = useState<InvitationPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [guestName, setGuestName] = useState('');
-  const [guestStatus, setGuestStatus] = useState<GuestJoinStatus>('idle');
-  const [guestError, setGuestError] = useState<string | null>(null);
 
   const loadPreview = useCallback(async () => {
     if (!invitationToken) return;
@@ -81,19 +71,6 @@ export default function InvitationScreen() {
   useEffect(() => {
     if (!authToken) loadPreview();
   }, [authToken, loadPreview]);
-
-  async function joinAsGuest() {
-    if (!invitationToken || !guestName.trim()) return;
-    setGuestStatus('submitting');
-    setGuestError(null);
-    try {
-      const result = await api.joinAsGuestViaInvitation(invitationToken, guestName.trim());
-      setGuestStatus(result.status);
-    } catch (err) {
-      setGuestError(err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.');
-      setGuestStatus('error');
-    }
-  }
 
   if (!authToken) {
     if (previewError) {
@@ -122,13 +99,13 @@ export default function InvitationScreen() {
     }
 
     return (
-      <KeyboardAvoidingView style={styles.guestFlex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.guestScroll} keyboardShouldPersistTaps="handled">
+      <View style={styles.guestFlex}>
+        <ScrollView contentContainerStyle={styles.guestScroll}>
           <View style={[styles.guestHeader, { backgroundColor: planTypeColor(preview.type) }]}>
             <Pressable
-              onPress={() => router.push('/login' as Href)}
+              onPress={() => router.push(loginWithInviteHref(invitationToken, 'login'))}
               accessibilityRole="button"
-              accessibilityLabel="Iniciar sesión"
+              accessibilityLabel="Iniciar sesión para unirme a este plan"
               style={styles.loginPill}
             >
               <Text style={styles.loginPillLabel}>Iniciar sesión</Text>
@@ -165,78 +142,27 @@ export default function InvitationScreen() {
               </>
             )}
 
-            {guestStatus === 'joined' ? (
-              <View style={styles.card}>
-                <Text style={styles.celebrationEmoji}>🎉</Text>
-                <Text style={styles.celebrationTitle}>¡Te has unido!</Text>
-                <Text style={styles.celebrationSubtitle}>
-                  Crea una cuenta para chatear, ver gastos y organizar planes tú mismo.
-                </Text>
-                <Pressable
-                  onPress={() => router.push('/login' as Href)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Crear cuenta"
-                  style={styles.primaryButtonWide}
-                >
-                  <Text style={styles.primaryButtonLabel}>Crear cuenta</Text>
-                </Pressable>
-              </View>
-            ) : guestStatus === 'pending' ? (
-              <View style={styles.card}>
-                <Text style={styles.celebrationTitle}>Solicitud enviada</Text>
-                <Text style={styles.celebrationSubtitle}>
-                  Este plan es privado. El organizador tiene que aprobar tu solicitud.
-                </Text>
-                <Pressable
-                  onPress={() => router.push('/login' as Href)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Crear cuenta"
-                  style={styles.primaryButtonWide}
-                >
-                  <Text style={styles.primaryButtonLabel}>Crear cuenta</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <View style={styles.card}>
-                <Text style={styles.sectionLabelSm}>¿Vienes?</Text>
-                <TextInput
-                  value={guestName}
-                  onChangeText={setGuestName}
-                  placeholder="Tu nombre"
-                  autoCapitalize="words"
-                  accessibilityLabel="Tu nombre"
-                  style={styles.input}
-                  onSubmitEditing={joinAsGuest}
-                />
-                {guestError && (
-                  <Text style={styles.error} accessibilityLiveRegion="polite" role="alert">
-                    {guestError}
-                  </Text>
-                )}
-                <Pressable
-                  onPress={joinAsGuest}
-                  disabled={guestStatus === 'submitting' || !guestName.trim()}
-                  accessibilityRole="button"
-                  accessibilityLabel="Unirme al plan"
-                  style={[
-                    styles.primaryButtonWide,
-                    (guestStatus === 'submitting' || !guestName.trim()) && styles.buttonDisabled,
-                  ]}
-                >
-                  {guestStatus === 'submitting' ? (
-                    <ActivityIndicator color="#fff" accessibilityLabel="Enviando" />
-                  ) : (
-                    <Text style={styles.primaryButtonLabel}>Unirme al plan</Text>
-                  )}
-                </Pressable>
-                <Text style={styles.guestHint}>
-                  Te unes como invitado, sin crear cuenta. Podrás crear una más tarde para ver más funciones.
-                </Text>
-              </View>
-            )}
+            <View style={styles.card}>
+              <Text style={styles.sectionLabelSm}>¿Vienes?</Text>
+              <Text style={styles.cardText}>
+                Para unirte, confirmar tu asistencia y ver el chat y los gastos del plan necesitas una cuenta.
+              </Text>
+              <Pressable
+                onPress={() => router.push(loginWithInviteHref(invitationToken, 'signup'))}
+                accessibilityRole="button"
+                accessibilityLabel="Crear cuenta para unirme a este plan"
+                style={styles.primaryButtonWide}
+              >
+                <Text style={styles.primaryButtonLabel}>Crear cuenta para unirme</Text>
+              </Pressable>
+              <Text style={styles.guestHint}>
+                ¿Ya tienes cuenta? Usa «Iniciar sesión». En ambos casos volverás a este plan para
+                unirte.
+              </Text>
+            </View>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     );
   }
 
@@ -311,7 +237,7 @@ const styles = StyleSheet.create({
   guestHeader: { paddingTop: 48, paddingHorizontal: 20, paddingBottom: 20 },
   loginPill: {
     alignSelf: 'flex-end',
-    minHeight: 32,
+    minHeight: 44,
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.18)',
     borderWidth: 1,
@@ -342,16 +268,6 @@ const styles = StyleSheet.create({
   avatarCircleOverlap: { marginLeft: -10 },
   avatarLabel: { color: '#fff', fontSize: 11, fontWeight: '700' },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 16 },
-  input: {
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: '#DCDCD8',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 15,
-    marginBottom: 10,
-  },
-  error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   primaryButtonWide: {
     minHeight: 44,
     borderRadius: 8,
@@ -359,9 +275,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonDisabled: { opacity: 0.6 },
-  guestHint: { fontSize: 10.5, color: '#8C8C88', marginTop: 10, lineHeight: 15 },
-  celebrationEmoji: { fontSize: 30, textAlign: 'center', marginBottom: 8 },
-  celebrationTitle: { fontSize: 15, fontWeight: '700', color: '#161B2E', textAlign: 'center', marginBottom: 6 },
-  celebrationSubtitle: { fontSize: 12, color: '#8C8C88', textAlign: 'center', marginBottom: 16 },
+  cardText: { fontSize: 13, color: '#4A4A46', lineHeight: 19, marginBottom: 14 },
+  guestHint: { fontSize: 12, color: '#6B6B67', marginTop: 12, lineHeight: 17 },
 });

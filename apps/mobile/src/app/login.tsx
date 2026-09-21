@@ -10,16 +10,21 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
 import { ApiError } from '@/api/client';
+import { inviteHref, onboardingWithInviteHref, parseInviteParam } from '@/invite/invite-token';
 
 type Mode = 'login' | 'signup';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { token, login, register } = useAuth();
-  const [mode, setMode] = useState<Mode>('login');
+  // Llegan desde la vista previa de una invitación sin cuenta (invite/[token].tsx):
+  // tras autenticarse hay que volver a esa invitación para unirse al plan.
+  const params = useLocalSearchParams<{ invite?: string; mode?: string }>();
+  const inviteToken = parseInviteParam(params.invite);
+  const [mode, setMode] = useState<Mode>(params.mode === 'signup' ? 'signup' : 'login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,7 +65,10 @@ export default function LoginScreen() {
   }
 
   if (token) {
-    return <Redirect href={justRegistered ? '/onboarding' : '/home'} />;
+    if (justRegistered) {
+      return <Redirect href={inviteToken ? onboardingWithInviteHref(inviteToken) : '/onboarding'} />;
+    }
+    return <Redirect href={inviteToken ? inviteHref(inviteToken) : '/home'} />;
   }
 
   return (

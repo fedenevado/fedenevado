@@ -9,13 +9,17 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type FriendSearchResult } from '@/api/client';
+import { inviteHref, parseInviteParam } from '@/invite/invite-token';
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const { token, user } = useAuth();
+  // Si el registro vino de una invitación, al terminar el onboarding se
+  // continúa hacia esa invitación (donde se une al plan) en vez de a Inicio.
+  const inviteToken = parseInviteParam(useLocalSearchParams<{ invite?: string }>().invite);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [query, setQuery] = useState('');
@@ -46,7 +50,7 @@ export default function OnboardingScreen() {
   }
 
   function finish() {
-    router.replace('/home');
+    router.replace(inviteToken ? inviteHref(inviteToken) : '/home');
   }
 
   async function refreshResults() {

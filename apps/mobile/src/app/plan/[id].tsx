@@ -259,13 +259,8 @@ export default function PlanDetailScreen() {
             style={styles.avatarStack}
           >
             {visibleAvatars.map((p, i) => (
-              <View
-                key={p.id}
-                style={[styles.avatarCircle, i > 0 && styles.avatarCircleOverlap, !p.userId && styles.avatarCircleGuest]}
-              >
-                <Text style={[styles.avatarLabel, !p.userId && styles.avatarLabelGuest]}>
-                  {p.userId ? getInitials(p.name) : '?'}
-                </Text>
+              <View key={p.id} style={[styles.avatarCircle, i > 0 && styles.avatarCircleOverlap]}>
+                <Text style={styles.avatarLabel}>{getInitials(p.name)}</Text>
               </View>
             ))}
             <Text style={styles.avatarCount}>
@@ -556,9 +551,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarCircleOverlap: { marginLeft: -8 },
-  avatarCircleGuest: { backgroundColor: '#fff', borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.9)' },
   avatarLabel: { fontSize: 8, fontWeight: '700', color: '#fff' },
-  avatarLabelGuest: { color: '#8C8C88' },
   avatarCount: { fontSize: 11, color: '#fff', marginLeft: 6, fontWeight: '600' },
   body: { flex: 1, padding: 20, paddingTop: 16 },
   tabRow: { flexDirection: 'row', gap: 6, marginBottom: 12 },

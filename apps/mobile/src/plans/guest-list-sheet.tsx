@@ -165,24 +165,16 @@ export function GuestListSheet({ token, plan, isOwner, onClose, onParticipantsCh
             )}
 
             {confirmed.map((p) => {
-              const isGuest = !p.userId;
               const isPlanOwner = p.userId === plan.ownerId;
               return (
                 <View key={p.id} style={styles.row}>
-                  <View style={[styles.avatar, isGuest && styles.avatarGuest]}>
-                    <Text style={[styles.avatarLabel, isGuest && styles.avatarLabelGuest]}>
-                      {isGuest ? '?' : getInitials(p.name)}
-                    </Text>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarLabel}>{getInitials(p.name)}</Text>
                   </View>
                   <Text style={styles.name}>{p.name}</Text>
                   {isPlanOwner && (
                     <View style={styles.badgeOwner}>
                       <Text style={styles.badgeOwnerLabel}>ORGANIZADOR</Text>
-                    </View>
-                  )}
-                  {isGuest && (
-                    <View style={styles.badgeGuest}>
-                      <Text style={styles.badgeGuestLabel}>SIN CUENTA</Text>
                     </View>
                   )}
                 </View>
@@ -275,13 +267,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarGuest: { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#C7C7C2', borderStyle: 'dashed' },
   avatarLabel: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  avatarLabelGuest: { color: '#8C8C88' },
   name: { flex: 1, fontSize: 13, color: '#161B2E' },
   badgeOwner: { backgroundColor: '#E8F3F1', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   badgeOwnerLabel: { fontSize: 9, fontWeight: '700', color: '#0E6E64' },
-  badgeGuest: { backgroundColor: '#EDEDEA', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
-  badgeGuestLabel: { fontSize: 9, fontWeight: '700', color: '#6B6B67' },
   emptyText: { fontSize: 12, color: '#8C8C88', textAlign: 'center', paddingVertical: 16 },
 });
