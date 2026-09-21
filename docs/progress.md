@@ -204,6 +204,13 @@ se vería luego en la pantalla Amigos.
 
 ### Paso E' — Acceso de invitado sin cuenta (`GuestPlanPreview`): implementado y verificado contra el backend/DB reales (2026-09-17)
 
+> **REVISADO el 2026-09-21 — la parte de "unirse sin cuenta" descrita aquí
+> ya no existe.** `POST /invitations/:token/guest-join` y el formulario de
+> nombre se eliminaron; `GET /invitations/:token/preview` y la vista previa
+> se mantienen. Ver "Paso E'' — Invitado sin cuenta pasa a ser solo un paso
+> hacia crear cuenta" justo debajo. El texto de esta sección se conserva
+> como historial de lo que se hizo entonces, no como estado actual.
+
 Pendiente marcado explícitamente en `CLAUDE.md` y `docs/roadmap.md` desde la
 auditoría del 2026-09-16 ("no existe todavía ni el enlace público, ni la
 pantalla `GuestPlanPreview`, ni backend de invitación por link"). Implementado
@@ -323,6 +330,95 @@ invitación real en un dispositivo/sesión sin haber iniciado sesión (o en
 incógnito) y completar el flujo visual completo — ver pasos de prueba abajo.
 Checklist de accesibilidad VoiceOver/TalkBack de esta pantalla tampoco
 confirmado todavía.
+
+### Paso E'' — Invitado sin cuenta pasa a ser solo un paso hacia crear cuenta (decisión del usuario, 2026-09-21)
+
+**Por qué.** Al probar el Paso E' en dispositivo el usuario encontró un
+problema de diseño, no un bug puntual: (1) tras "unirse como invitado" no se
+podía cambiar el RSVP ni ver chat/gastos — callejón sin salida; (2) al crear
+después una cuenta real quedaba un participante duplicado, con el "invitado
+sin cuenta" huérfano en el plan y sin ningún vínculo con la cuenta nueva.
+Se eligió la "Opción B": unirse sin cuenta **no deja ningún registro**.
+
+**Desviación deliberada del prototipo** (`docs/cantixplora-prototype.jsx`,
+`GuestPlanPreview` con `onJoinAsGuest`): allí "Unirme al plan" añade un
+participante con `userId: null`. Aquí no. Ver también `CLAUDE.md`.
+
+**Backend** (`apps/backend/src/plans/`, commit `cfa4909`):
+- Eliminados `POST /invitations/:token/guest-join`, `JoinAsGuestDto`,
+  `PlansService.joinAsGuest`, el tipo `GuestJoinResult` y los 4 tests de
+  `joinAsGuest`. `previewInvitation` (público, 20/min) se queda tal cual; su
+  helper interno se renombró a `getValidInvitationForPreview`.
+- `POST /invitations/:token/join` (autenticado) **no se tocó**: ya creaba el
+  `PlanParticipant` con `invitationId` y `rsvpStatus: pending` (plan público)
+  o una `JoinRequest` con `userId` (plan privado). Es lo que ahora usa quien
+  se registra desde el enlace. Decisión del usuario: RSVP `pending`, igual
+  que cualquier autenticado, y decide dentro del plan.
+
+**Mobile** (commit `d4e4d89`):
+- `invite/[token].tsx`, rama sin sesión: sin campo de nombre ni estados de
+  invitado. Cabecera del plan + confirmados (según `guestListVisibility`) +
+  botón "Crear cuenta para unirme" (→ `/login?invite=<token>&mode=signup`) y
+  "Iniciar sesión" (→ `/login?invite=<token>`).
+- `login.tsx` lee `invite` y `mode`; tras autenticarse redirige a
+  `/invite/<token>` (login) o a `/onboarding?invite=<token>` (registro).
+  `onboarding.tsx` al terminar continúa a `/invite/<token>` en vez de `/home`.
+  La rama ya autenticada de `invite/[token].tsx` (auto-join) es la que une
+  al plan. Sin `?invite=` el comportamiento es el de siempre (`/home`).
+- Nuevo `src/invite/invite-token.ts`: `?invite=` lo controla quien abre el
+  enlace, así que solo se usa para redirigir si cumple `/^[a-f0-9]{24}$/`
+  (la forma de `randomBytes(12).toString('hex')` del backend).
+- Quitados `joinAsGuestViaInvitation`/`GuestJoinResult` de `api/client.ts` y
+  las ramas "sin cuenta" (avatar punteado con "?", badge "SIN CUENTA") de
+  `plan/[id].tsx` y `guest-list-sheet.tsx`.
+- Accesibilidad incluida en la misma pasada: `accessibilityLabel` en ambos
+  botones, texto de apoyo con contraste ≥ AA (`#6B6B67`/`#4A4A46` sobre
+  blanco), y el botón "Iniciar sesión" de la cabecera pasa de 32 a 44pt de
+  alto (incumplía el mínimo 44×44pt desde el Paso E').
+
+**Evidencia (2026-09-21):**
+```
+$ pnpm --filter backend test
+Test Suites: 10 passed, 10 total
+Tests:       106 passed, 106 total   (antes: 110 — −4 de joinAsGuest)
+
+$ pnpm --filter backend build            → sin errores
+$ cd apps/mobile && npx tsc --noEmit     → sin salida (sin errores de tipos)
+$ npx expo export --platform android     → Exported: dist (bundle Hermes 5.1MB)
+
+# backend en marcha, con el código nuevo (dist/ recompilado)
+POST /invitations/abc/guest-join   → 404 "Cannot POST /invitations/abc/guest-join"
+GET  /invitations/abc/preview      → 404 "Enlace de invitación no válido o caducado."
+POST /invitations/abc/join (sin auth) → 401 "Falta el token de autenticación."
+```
+
+**No verificado (requiere dispositivo):** el flujo completo en Expo Go
+(enlace sin sesión → registro → onboarding → unión al plan); checklist
+VoiceOver/TalkBack de la pantalla.
+
+**Pendiente, anotado a petición del usuario (no se hace ahora):**
+- **Pendiente menor — `invitationId` en planes privados.** En plan público
+  el participante queda vinculado a la invitación (`invitationId`), pero en
+  privado no: `approveJoinRequest` crea el participante sin él y
+  `JoinRequest` no tiene ese campo (tampoco se incrementa `usesCount`).
+  Vincularlo exige un campo nuevo `JoinRequest.invitationId` (cambio de
+  schema, hay que decirlo antes de tocarlo).
+- **Limpieza futura de schema.** Sin uso tras este cambio:
+  `PlanParticipant.guestName`, `JoinRequest.guestName` y el `userId`
+  nullable de ambos; también el uso de `guestName` en
+  `PlansService` (`p.user?.name ?? p.guestName`, `listJoinRequests`,
+  `approveJoinRequest`) y la rama `actorId: null` → "Alguien" de
+  `NotificationsService.buildMessage` para `join_request_received`. No se
+  migra ahora; `docs/schema.prisma` y `apps/backend/prisma/schema.prisma`
+  siguen idénticos.
+- **Datos huérfanos de la prueba del usuario** (2 `plan_participants` con
+  `user_id NULL` en "Boda Ana y Fede": "Tomás" y "Federico", ambos `yes`,
+  invitación `bbcae701…`; 0 `join_requests` sin cuenta, 0 notificaciones sin
+  actor, 0 `expense_splits` de ellos). **Pendiente del visto bueno del
+  usuario para borrarlos**; al borrarlos, `invitations.uses_count` de esa
+  invitación (ahora 3) debería bajar a 1.
+- Si el usuario pulsa "¿Olvidaste tu contraseña?" desde el login abierto
+  desde una invitación, el `?invite=` se pierde (caso límite aceptado).
 
 ### Paso extra — Barra de navegación inferior fija (pedido explícito del usuario, 2026-09-15)
 

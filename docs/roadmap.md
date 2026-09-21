@@ -83,13 +83,13 @@ usuario.
   `new_message`, etc. — ver deuda aplazada en `docs/progress.md`). Push
   con Firebase Cloud Messaging.
 - **Onboarding**: primer arranque para una cuenta nueva.
-- **Acceso de invitado sin cuenta** — implementado y verificado contra el
-  backend/DB reales el 2026-09-17 (ver `docs/progress.md`, "Paso E'"):
-  `GET/POST /invitations/:token/preview|guest-join` públicos +
-  `GuestPlanPreview` real en `invite/[token].tsx`. Pendiente solo tu prueba
-  visual en Expo Go/incógnito (pasos de prueba en la respuesta de esa
-  sesión) y el checklist de accesibilidad VoiceOver/TalkBack de esa
-  pantalla.
+- **Acceso de invitado sin cuenta** — revisado el 2026-09-21 (ver
+  `docs/progress.md`, "Paso E''"): el enlace de invitación muestra una vista
+  previa pública (`GET /invitations/:token/preview`) pero **ya no permite
+  unirse sin cuenta** (`guest-join` eliminado); solo ofrece "Crear cuenta
+  para unirme" / "Iniciar sesión", y tras autenticarse `POST
+  /invitations/:token/join` une al plan. Pendiente tu prueba en Expo Go y el
+  checklist de accesibilidad VoiceOver/TalkBack de esa pantalla.
 - **Accesibilidad**: repaso completo VoiceOver/TalkBack de **todas** las
   pantallas (no solo la última tocada), WCAG 2.1 AA de principio a fin —
   incluye cerrar la deuda aplazada de fases anteriores.
@@ -102,8 +102,9 @@ usuario.
 - Eliminar amigo.
 - Gestión de permisos de invitados ("quitar participante" del plan, ver
   nota en Paso extra 2c de `docs/progress.md`) — enlace de invitación,
-  planes públicos/privados con aprobación de solicitudes e invitado sin
-  cuenta vía enlace ya están implementados (v1.0, ver `docs/progress.md`).
+  planes públicos/privados con aprobación de solicitudes y vista previa
+  pública del enlace (con unión tras crear cuenta) ya están implementados
+  (v1.0, ver `docs/progress.md`).
 - **"El Plan" (itinerario de viaje)**: pestaña del detalle de plan del
   prototipo (información importante, alojamiento, día a día con
   actividades) — pendiente, post-v1.0. Decisión del usuario, 2026-09-16,

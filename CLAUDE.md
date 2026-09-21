@@ -1,12 +1,12 @@
 # Cantixplora
 
-App de organización social: calendario compartido, planes (viaje/comida/evento/plan casual), gastos con reparto parcial, chat, listas con plantillas, tareas de ruta compartibles con checklist propia, login con acceso de invitado sin cuenta. Mercado objetivo: España. Proyecto personal, sin prisa, prioriza calidad y accesibilidad sobre velocidad.
+App de organización social: calendario compartido, planes (viaje/comida/evento/plan casual), gastos con reparto parcial, chat, listas con plantillas, tareas de ruta compartibles con checklist propia, login con vista previa pública de planes desde un enlace de invitación (para unirse hace falta crear cuenta). Mercado objetivo: España. Proyecto personal, sin prisa, prioriza calidad y accesibilidad sobre velocidad.
 
 ## Estado del prototipo (referencia de comportamiento, no de código a copiar)
 
 El prototipo (`docs/cantixplora-prototype.jsx`) está congelado y validado — 19 componentes, sin errores de sintaxis ni referencias rotas (verificado con esbuild). Cubre:
 
-- Auth: pantalla de login/registro + vista de invitado sin cuenta (unirse a un plan público desde un enlace, sin registrarse)
+- Auth: pantalla de login/registro + vista previa pública de un plan desde un enlace de invitación (`GuestPlanPreview`). **Desviación deliberada del prototipo (decisión del usuario, 2026-09-21):** en el prototipo "Unirme al plan" añade un participante sin cuenta (`userId: null`); aquí **no** — sin cuenta solo se ve la vista previa y el único paso es "Crear cuenta para unirme" / "Iniciar sesión"; el participante real se crea tras autenticarse, vinculado al enlace. No hay invitado persistente sin cuenta. No reintroducir `guest-join` copiando el prototipo.
 - Planes: CRUD completo, RSVP con gate + confirmación de "no voy", públicos/privados con aprobación de solicitudes, propietario con permisos de gestión de invitados
 - Calendario: navegable (mes, swipe), con días multi-evento, y disponibilidad compartida entre amigos ("buscar hueco común")
 - Gastos: reparto parcial, balances simplificados, cerrar cuentas, marcar transferencias como pagadas (dispara notificación)
