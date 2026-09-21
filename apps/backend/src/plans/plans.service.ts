@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
@@ -56,11 +56,6 @@ export interface InvitationPreview {
   guestListVisibility: string;
   confirmedCount: number | null;
   confirmedPreview: { name: string }[] | null;
-}
-
-export interface GuestJoinResult {
-  status: "joined" | "pending";
-  planId: string;
 }
 
 const PLAN_INCLUDE = {
@@ -383,11 +378,11 @@ export class PlansService {
     return { status: "joined", planId: invitation.planId };
   }
 
-  // Usado por los endpoints públicos (sin cuenta): a diferencia de
+  // Usado por la vista previa pública (sin cuenta): a diferencia de
   // joinViaInvitationToken, aquí no hay userId que comprobar contra
   // participantes existentes, así que solo se valida que el enlace siga
   // siendo válido.
-  private async getValidInvitationForGuest(token: string) {
+  private async getValidInvitationForPreview(token: string) {
     const invitation = await this.prisma.invitation.findUnique({
       where: { token },
       include: { plan: { include: { owner: true, config: true, participants: { include: { user: true } } } } },
@@ -399,7 +394,7 @@ export class PlansService {
   }
 
   async previewInvitation(token: string): Promise<InvitationPreview> {
-    const invitation = await this.getValidInvitationForGuest(token);
+    const invitation = await this.getValidInvitationForPreview(token);
     const plan = invitation.plan;
 
     const guestListVisibility = plan.config?.guestListVisibility ?? "public_full";
@@ -421,48 +416,6 @@ export class PlansService {
           ? confirmed.slice(0, 6).map((p) => ({ name: p.user?.name ?? p.guestName ?? "" }))
           : null,
     };
-  }
-
-  async joinAsGuest(token: string, guestNameInput: string): Promise<GuestJoinResult> {
-    const guestName = guestNameInput.trim();
-    if (!guestName) {
-      throw new BadRequestException("Escribe tu nombre.");
-    }
-
-    const invitation = await this.getValidInvitationForGuest(token);
-
-    if (invitation.plan.visibility === "privada") {
-      await this.prisma.joinRequest.create({
-        data: { planId: invitation.planId, guestName, status: "pending" },
-      });
-      await this.prisma.notification.create({
-        data: {
-          userId: invitation.plan.ownerId,
-          type: "join_request_received",
-          planId: invitation.planId,
-          actorId: null,
-        },
-      });
-      return { status: "pending", planId: invitation.planId };
-    }
-
-    await this.prisma.$transaction([
-      this.prisma.planParticipant.create({
-        data: {
-          planId: invitation.planId,
-          guestName,
-          role: "guest",
-          rsvpStatus: "yes",
-          invitationId: invitation.id,
-        },
-      }),
-      this.prisma.invitation.update({
-        where: { id: invitation.id },
-        data: { usesCount: { increment: 1 } },
-      }),
-    ]);
-
-    return { status: "joined", planId: invitation.planId };
   }
 
   async listJoinRequests(userId: string, planId: string): Promise<JoinRequestSummary[]> {

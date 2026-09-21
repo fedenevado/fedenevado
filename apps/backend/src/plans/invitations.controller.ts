@@ -1,9 +1,8 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { Controller, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import type { Request } from "express";
 import { SupabaseAuthGuard, type AuthenticatedUser } from "../auth/supabase-auth.guard";
 import { PlansService } from "./plans.service";
-import { JoinAsGuestDto } from "./dto/join-as-guest.dto";
 
 type AuthenticatedRequest = Request & { user: AuthenticatedUser };
 
@@ -16,14 +15,6 @@ export class InvitationsController {
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   previewInvitation(@Param("token") token: string) {
     return this.plansService.previewInvitation(token);
-  }
-
-  // Sin cuenta: unirse (o solicitar unirse, si el plan es privado) dando solo un nombre.
-  @Post(":token/guest-join")
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  joinAsGuest(@Param("token") token: string, @Body() dto: JoinAsGuestDto) {
-    return this.plansService.joinAsGuest(token, dto.guestName);
   }
 
   @Post(":token/join")
