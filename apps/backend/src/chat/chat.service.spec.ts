@@ -28,12 +28,16 @@ function buildService(overrides: {
   planFindUnique?: jest.Mock;
   messageFindMany?: jest.Mock;
   messageCreate?: jest.Mock;
+  notificationCreateMany?: jest.Mock;
 }) {
   const prisma: any = {
     plan: { findUnique: overrides.planFindUnique ?? jest.fn().mockResolvedValue(samplePlan()) },
     message: {
       findMany: overrides.messageFindMany ?? jest.fn().mockResolvedValue([]),
       create: overrides.messageCreate ?? jest.fn().mockResolvedValue(sampleMessage()),
+    },
+    notification: {
+      createMany: overrides.notificationCreateMany ?? jest.fn().mockResolvedValue({ count: 0 }),
     },
   };
   return { service: new ChatService(prisma), prisma };
@@ -78,6 +82,29 @@ describe("ChatService", () => {
       expect(prisma.message.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: { planId: "plan-1", senderId: "owner", content: "Hola a todos" } }),
       );
+    });
+
+    it("notifica a los demás participantes del plan, pero no a quien envía", async () => {
+      const planFindUnique = jest.fn().mockResolvedValue(
+        samplePlan({
+          participants: [participant("owner"), participant("user-2", "pending"), participant("user-3")],
+        }),
+      );
+      const { service, prisma } = buildService({ planFindUnique });
+      await service.sendMessage("owner", "plan-1", { content: "Hola a todos" });
+      expect(prisma.notification.createMany).toHaveBeenCalledWith({
+        data: [
+          { userId: "user-2", type: "new_message", planId: "plan-1", actorId: "owner" },
+          { userId: "user-3", type: "new_message", planId: "plan-1", actorId: "owner" },
+        ],
+      });
+    });
+
+    it("no llama a createMany si no hay más participantes con cuenta", async () => {
+      const planFindUnique = jest.fn().mockResolvedValue(samplePlan({ participants: [participant("owner")] }));
+      const { service, prisma } = buildService({ planFindUnique });
+      await service.sendMessage("owner", "plan-1", { content: "Hola" });
+      expect(prisma.notification.createMany).not.toHaveBeenCalled();
     });
   });
 });

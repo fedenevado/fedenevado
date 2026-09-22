@@ -424,6 +424,51 @@ confirme explícitamente); ver "Deuda de accesibilidad arrastrada".
 - Si el usuario pulsa "¿Olvidaste tu contraseña?" desde el login abierto
   desde una invitación, el `?invite=` se pierde (caso límite aceptado).
 
+### Paso F — Notificación `new_message` en el chat (pedido explícito del usuario, 2026-09-22)
+
+Cerraba el hueco anotado desde v0.4: el schema y `NotificationsService`
+(mensaje "Nuevo mensaje de {actor} en {plan}", `targetTab: "chat"`) ya
+estaban listos desde el Paso B, pero nada la disparaba.
+
+**Backend** (`apps/backend/src/chat/chat.service.ts`, método
+`sendMessage`): tras crear el mensaje, se notifica a todos los demás
+participantes del plan con `userId` (mismo criterio que `new_expense` en
+`expenses.service.ts` — cualquier participante, no solo confirmados, nunca
+a quien envía), vía `prisma.notification.createMany`. Sin agrupación de
+mensajes — cada uno crea su propia notificación, igual que ya pasa con
+`new_expense`/`expense_settled`; no se inventa un mecanismo de agrupar que
+no existe para ningún otro tipo, ahora que la pantalla real (Paso C)
+confirma que ninguno agrupa.
+
+2 tests nuevos en `chat.service.spec.ts`: notifica a los demás
+participantes (no al remitente) y no llama a `createMany` si el remitente
+es el único participante con cuenta.
+
+Evidencia:
+```
+$ pnpm --filter backend test
+Test Suites: 10 passed, 10 total
+Tests:       108 passed, 108 total   (antes: 106 — +2 de new_message)
+
+$ pnpm --filter backend build   → sin errores
+$ npx prisma validate           → válido, sin migración
+```
+
+**Verificado contra el backend/DB reales en esta sesión** (2 cuentas
+desechables `qa-chat-a/b@example.com`, creadas y borradas al terminar —
+Supabase Auth, `users`, `friendships`, `plans` y `notifications`, sin
+rastro): A y B amigas; A crea un plan privado invitando a B, ambas
+confirman RSVP; A envía un mensaje de chat → `GET /notifications` de B
+devuelve `new_message` ("Nuevo mensaje de QA Chat A en QA Chat notif",
+`targetTab: "chat"`) junto al `plan_invite` anterior; `GET /notifications`
+de A (quien envió el mensaje) devuelve `[]`. **Confirmado.**
+
+No verificado todavía: prueba visual en Expo Go (que la fila de
+notificación de un mensaje nuevo lleve a la pestaña Chat correcta) —
+mismo criterio que el resto de Paso C, no bloquea este cierre porque ya
+usa el mismo componente `notifications.tsx` ya verificado en su parte
+mecánica.
+
 ### Paso extra — Barra de navegación inferior fija (pedido explícito del usuario, 2026-09-15)
 
 El usuario pidió sustituir la fila de botones de texto (Planes/Amigos/
@@ -874,14 +919,10 @@ bundle. `dist/` no se comprometió (ya está en `.gitignore`).
   (2026-09-14): aplazar la configuración de un proveedor SMTP (Resend) a
   más adelante, no es prioritario ahora. **No tratar esto como bloqueante
   en ninguna fase futura del roadmap.** Retomar antes del lanzamiento.
-- **Notificación de "nuevo mensaje" en el chat.** El schema ya tiene
-  `NotificationType.new_message` previsto, y el patrón ya existe (se usó
-  para `expense_settled` en v0.4). Decisión explícita del usuario
-  (2026-09-14): no crear esta `Notification` todavía al enviar un mensaje
-  — se aplaza a v1.0, cuando se construya el centro de notificaciones de
-  verdad, junto con el diseño de cómo se agrupan/marcan como leídas (no
-  tiene sentido diseñar eso a ciegas, mensaje a mensaje, sin la pantalla
-  real). **No tratar esto como bloqueante en v0.5 ni en fases futuras.**
+- ~~Notificación de "nuevo mensaje" en el chat~~ — **cerrado 2026-09-22**,
+  ver "Paso F — Notificación `new_message` en el chat" en la sección de
+  v1.0. Aplazado desde v0.4 (2026-09-14) hasta que existiera el centro de
+  notificaciones real.
 
 ## v0.5 — Chat y Listas — CERRADO (funcional) 2026-09-15, accesibilidad pendiente
 

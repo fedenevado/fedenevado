@@ -78,6 +78,24 @@ export class ChatService {
       data: { planId, senderId: userId, content },
       include: MESSAGE_INCLUDE,
     });
+
+    // Se avisa a todos los demás participantes del plan, mismo criterio que
+    // new_expense: cualquier participante, no solo los confirmados, nunca a
+    // quien envía. Sin agrupación de mensajes, igual que el resto de tipos.
+    const recipients = plan.participants
+      .map((p) => p.userId)
+      .filter((participantId): participantId is string => !!participantId && participantId !== userId);
+    if (recipients.length > 0) {
+      await this.prisma.notification.createMany({
+        data: recipients.map((recipientId) => ({
+          userId: recipientId,
+          type: "new_message" as const,
+          planId,
+          actorId: userId,
+        })),
+      });
+    }
+
     return toMessageSummary(message);
   }
 }
