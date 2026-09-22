@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
@@ -6,10 +6,24 @@ import { LoginDto } from "./dto/login.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { RefreshDto } from "./dto/refresh.dto";
+import { UsernameSuggestionDto } from "./dto/username-suggestion.dto";
+import { UsernameAvailabilityDto } from "./dto/username-availability.dto";
 
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get("username-suggestion")
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  suggestUsername(@Query() query: UsernameSuggestionDto) {
+    return this.authService.suggestUsername(query.name);
+  }
+
+  @Get("username-availability")
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  checkUsernameAvailability(@Query() query: UsernameAvailabilityDto) {
+    return this.authService.checkUsernameAvailability(query.username);
+  }
 
   @Post("register")
   @Throttle({ default: { limit: 5, ttl: 60_000 } })

@@ -469,6 +469,128 @@ mismo criterio que el resto de Paso C, no bloquea este cierre porque ya
 usa el mismo componente `notifications.tsx` ya verificado en su parte
 mecánica.
 
+### Paso G — Nombre de usuario único (`@handle`) para desambiguar amigos (pedido explícito del usuario, 2026-09-22)
+
+**Por qué.** El usuario quería evitar que amigos con el mismo nombre se
+confundieran en el buscador, sin forzar que el nombre completo sea único
+(dos personas pueden llamarse igual de verdad). Decisiones tomadas antes
+de programar: el username se genera sugerido a partir del nombre al
+registrarse, es editable en ese momento, y **queda fijo después** (no se
+puede cambiar desde Perfil — no existe edición de perfil todavía, y no se
+amplía el alcance a construirla ahora); en el buscador se muestra
+`(@username)` junto al nombre **solo cuando hay nombres repetidos** en esa
+búsqueda, no siempre.
+
+**Referencia del prototipo, no copiada literalmente**: `ProfileView` en
+`docs/cantixplora-prototype.jsx` (líneas 2229-2340) ya tenía este mismo
+campo pensado — validación `^[a-z0-9._]{3,20}$`, minúsculas, unicidad —
+dentro de una pantalla de edición de perfil completa que esta app no
+tiene. Se reutiliza el formato de validación, no la pantalla.
+
+**Schema** (`docs/schema.prisma` + `apps/backend/prisma/schema.prisma`,
+cambio de modelo confirmado explícitamente antes de tocarlo): `username
+String @unique` en `User`. Migración
+`20260922070251_add_user_username` — en 3 pasos porque un único `ADD
+COLUMN` con valor por defecto habría violado la unicidad entre las 7
+cuentas reales que ya existían (el usuario y sus amigos de pruebas, no
+cuentas QA desechables): columna nullable → backfill por `id` con el
+mismo slugify que usa el backend para sugerencias nuevas (sin colisiones
+entre esas 7) → `NOT NULL` + índice único. Sin usuarios de prueba que
+limpiar en este paso, ya estaban ahí antes de esta sesión.
+
+**Backend:**
+- `auth/username.util.ts`: `slugifyUsernameBase` (minúsculas, sin
+  acentos, espacios → `.`, recorte a 20 caracteres, `"user"` como
+  fallback si queda más corto que el mínimo de 3).
+- `GET /auth/username-suggestion?name=` y `GET
+  /auth/username-availability?username=` (públicos, `@Throttle` 20/min
+  cada uno, endpoints nuevos y sensibles a abuso igual que el resto de
+  rutas públicas).
+- `RegisterDto` exige `username` con el mismo regex. `AuthService.register()`
+  ya no permite email+username en cualquier orden sin control: si el
+  username choca (condición de carrera, entre la sugerencia y el envío
+  final), se revierte la cuenta de Supabase Auth recién creada
+  (`deleteUser`) antes de devolver `409` — si no, quedaría una cuenta de
+  Auth huérfana sin fila en `public.users`, y un reintento con el mismo
+  email fallaría en Supabase con "ya existe" sin que hubiera ningún
+  registro real. La ruta de fallback de `signIn()` (usuario autenticado
+  en Supabase sin fila en `public.users`, caso defensivo ya existente)
+  también genera un username vía `suggestUsername` en vez de fallar por
+  el nuevo `NOT NULL`.
+- `FriendshipsService.searchUsers`: añade `username` al `OR` de búsqueda
+  (quitando una `@` inicial si la escriben) y a `FriendSearchResult`.
+  `listFriends`/`listPendingRequests` no se tocan — fuera del alcance
+  pedido (solo el buscador).
+- 8 tests nuevos (`auth.service.spec.ts`: registro con username,
+  normalización a minúsculas, conflicto con rollback de Supabase,
+  sugerencia con acentos, sugerencia con sufijo numérico si choca,
+  disponibilidad inválida/ocupado/libre; `friendships.service.spec.ts`:
+  username en los resultados, búsqueda con `@` inicial).
+
+**Mobile:**
+- `login.tsx` (registro): campo nuevo de username bajo "Nombre completo",
+  prellenado (debounced 500ms) llamando a `username-suggestion` mientras
+  el usuario no lo haya tocado a mano; en cuanto lo edita, valida formato
+  al instante (sin red) y disponibilidad con el mismo debounce contra
+  `username-availability`, con su propio error de validación en vivo
+  (`accessibilityLiveRegion="polite"`, igual que el resto de errores del
+  formulario). El envío queda bloqueado si el formato es inválido, el
+  username está ocupado, o la comprobación sigue en curso.
+- `friends.tsx` (buscador): `duplicateNames` calcula qué nombres se
+  repiten dentro de esa misma búsqueda; solo esas filas muestran
+  "{name} (@{username})", el resto solo el nombre — igual en el texto
+  visible que en los `accessibilityLabel` de "Añadir"/"Aceptar"/"Rechazar"
+  de esas filas, no solo visualmente.
+- `auth-context.tsx`/`api/client.ts`: `register()` gana el parámetro
+  `username`; tipos nuevos `UsernameSuggestion`/`UsernameAvailability`.
+
+Evidencia:
+```
+$ pnpm --filter backend test
+Test Suites: 10 passed, 10 total
+Tests:       116 passed, 116 total   (antes: 108 — +8 de username)
+
+$ pnpm --filter backend build   → sin errores
+$ npx prisma validate           → válido
+$ npx prisma migrate deploy     → 20260922070251_add_user_username aplicada
+
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json
+(sin salida — sin errores de tipos)
+
+$ npx expo export --platform android
+Android Bundled 32184ms (3252 modules) — sin errores
+Exported: dist
+```
+
+**Verificado contra el backend/DB reales en esta sesión** (4 cuentas
+desechables `qa-user-a/c/e@example.com` — B nunca llegó a crearse, ver
+abajo —, creadas y borradas al terminar de Supabase Auth y `users`, sin
+rastro):
+- Sugerencia para "Ana García" → `{"username":"ana.garcia"}`. **Confirmado.**
+- Registro de A con username `ana.garcia.qa` → `200`, sesión válida.
+  Registro de B con el **mismo** username → `409` "Ese nombre de usuario
+  ya está en uso." (nunca llegó a crear cuenta de prueba, la petición
+  falló antes). `GET /auth/username-availability?username=ana.garcia.qa`
+  tras el registro de A → `available:false`. `username=AB` (formato
+  inválido) → `available:false` con el motivo de formato. **Confirmado.**
+- Registro de C con **el mismo nombre** que A ("Ana García QA") pero
+  username distinto (`ana.garcia.qa2`) → `200`, permitido sin problema
+  (el nombre completo nunca es único). **Confirmado.**
+- Caso real de ambigüedad: un cuarto usuario (E, "QA Searcher") busca
+  "Ana García QA" → `GET /friendships/search` devuelve **a A y a C**, cada
+  uno con su propio `username` distinguible (`ana.garcia.qa` /
+  `ana.garcia.qa2`) — justo el escenario que el buscador de `friends.tsx`
+  usa para decidir cuándo mostrar el `@handle`. Búsqueda por
+  `@ana.garcia.qa2` (con `@` inicial) también encuentra a C.
+  **Confirmado.**
+
+No verificado todavía: prueba visual en Expo Go (que la sugerencia
+aparezca al escribir el nombre, que el error de formato/disponibilidad se
+muestre en vivo al editarlo, y que el buscador de Amigos muestre el
+`@handle` solo cuando hay nombres repetidos). Checklist de accesibilidad
+VoiceOver/TalkBack de este campo nuevo tampoco confirmado — se suma a la
+deuda de accesibilidad de más abajo.
+
 ### Paso extra — Barra de navegación inferior fija (pedido explícito del usuario, 2026-09-15)
 
 El usuario pidió sustituir la fila de botones de texto (Planes/Amigos/
@@ -1538,6 +1660,15 @@ aprobación de solicitudes, invitado sin cuenta vía enlace).
 - [ ] VoiceOver/TalkBack sobre la cabecera nueva de `plan/[id].tsx` y
       sobre `guest-list-sheet.tsx`/`invite/[token].tsx` (auditoría v1.0,
       2026-09-16) — sin confirmar todavía, no se ha probado en dispositivo.
+- [ ] VoiceOver/TalkBack sobre `notifications.tsx`, `onboarding.tsx` y la
+      barra de pestañas nueva `(tabs)/_layout.tsx` (Paso C/D/extra de v1.0,
+      2026-09-15/16) — tenían `accessibilityLabel` puesto desde que se
+      construyeron, pero **se quedaron fuera de esta lista de seguimiento**
+      hasta que el usuario lo señaló explícitamente el 2026-09-22; nunca se
+      confirmó con lector de pantalla real.
+- [ ] VoiceOver/TalkBack sobre el campo de username nuevo en `login.tsx` y
+      sobre el `@handle` condicional en `friends.tsx` (Paso G de v1.0,
+      2026-09-22) — sin confirmar todavía.
 
 ## Reglas que siguen aplicando (de CLAUDE.md, no repetir el resto aquí)
 

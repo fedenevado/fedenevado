@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,8 +12,11 @@ import {
 } from 'react-native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
-import { ApiError } from '@/api/client';
+import { api, ApiError } from '@/api/client';
 import { inviteHref, onboardingWithInviteHref, parseInviteParam } from '@/invite/invite-token';
+
+const USERNAME_FORMAT_ERROR = 'Solo minúsculas, números, puntos y guiones bajos (3-20 caracteres).';
+const USERNAME_REGEX = /^[a-z0-9._]{3,20}$/;
 
 type Mode = 'login' | 'signup';
 
@@ -26,14 +29,77 @@ export default function LoginScreen() {
   const inviteToken = parseInviteParam(params.invite);
   const [mode, setMode] = useState<Mode>(params.mode === 'signup' ? 'signup' : 'login');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [usernameTouched, setUsernameTouched] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [justRegistered, setJustRegistered] = useState(false);
+  const suggestionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const availabilityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sugiere un username a partir del nombre mientras el usuario no haya
+  // editado el campo a mano (debounced: el endpoint es público y va limitado
+  // a 20/min, escribir el nombre entero disparado a cada tecla lo agotaría).
+  useEffect(() => {
+    if (mode !== 'signup' || usernameTouched || !name.trim()) return;
+    if (suggestionTimer.current) clearTimeout(suggestionTimer.current);
+    suggestionTimer.current = setTimeout(async () => {
+      try {
+        const { username: suggested } = await api.suggestUsername(name.trim());
+        setUsername(suggested);
+      } catch {
+        // Sugerencia best-effort: si falla, el usuario simplemente escribe el suyo.
+      }
+    }, 500);
+    return () => {
+      if (suggestionTimer.current) clearTimeout(suggestionTimer.current);
+    };
+  }, [name, mode, usernameTouched]);
+
+  // Validación en vivo del username editado a mano: formato primero (sin red),
+  // disponibilidad después (debounced, mismo motivo que arriba).
+  useEffect(() => {
+    if (mode !== 'signup' || !usernameTouched) return;
+    if (!username) {
+      setUsernameError(null);
+      return;
+    }
+    if (!USERNAME_REGEX.test(username)) {
+      setUsernameError(USERNAME_FORMAT_ERROR);
+      return;
+    }
+    setUsernameError(null);
+    if (availabilityTimer.current) clearTimeout(availabilityTimer.current);
+    setIsCheckingUsername(true);
+    availabilityTimer.current = setTimeout(async () => {
+      try {
+        const { available, reason } = await api.checkUsernameAvailability(username);
+        setUsernameError(available ? null : (reason ?? 'Ese nombre de usuario ya está en uso.'));
+      } catch {
+        // No se pudo comprobar disponibilidad ahora: se revalida igualmente al enviar.
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }, 500);
+    return () => {
+      if (availabilityTimer.current) clearTimeout(availabilityTimer.current);
+    };
+  }, [username, mode, usernameTouched]);
+
+  function handleUsernameChange(value: string) {
+    setUsernameTouched(true);
+    setUsername(value.toLowerCase());
+  }
 
   function validate(): string | null {
     if (mode === 'signup' && !name.trim()) return 'Escribe tu nombre completo.';
+    if (mode === 'signup' && !USERNAME_REGEX.test(username)) return USERNAME_FORMAT_ERROR;
+    if (mode === 'signup' && usernameError) return usernameError;
+    if (mode === 'signup' && isCheckingUsername) return 'Espera a que se compruebe el nombre de usuario.';
     if (!email.trim()) return 'Escribe tu email.';
     if (!password.trim()) return 'Escribe tu contraseña.';
     if (mode === 'signup' && password.trim().length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
@@ -52,7 +118,7 @@ export default function LoginScreen() {
     try {
       if (mode === 'signup') {
         setJustRegistered(true);
-        await register(name.trim(), email.trim(), password);
+        await register(name.trim(), username, email.trim(), password);
       } else {
         await login(email.trim(), password);
       }
@@ -116,6 +182,28 @@ export default function LoginScreen() {
               accessibilityLabel="Nombre completo"
               style={styles.input}
             />
+          )}
+          {mode === 'signup' && (
+            <>
+              <View style={styles.usernameRow}>
+                <Text style={styles.usernamePrefix}>@</Text>
+                <TextInput
+                  value={username}
+                  onChangeText={handleUsernameChange}
+                  placeholder="nombre.de.usuario"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  accessibilityLabel="Nombre de usuario"
+                  style={styles.usernameInput}
+                />
+                {isCheckingUsername && <ActivityIndicator size="small" accessibilityLabel="Comprobando disponibilidad" />}
+              </View>
+              {usernameError && (
+                <Text style={styles.error} accessibilityLiveRegion="polite" role="alert">
+                  {usernameError}
+                </Text>
+              )}
+            </>
           )}
           <TextInput
             value={email}
@@ -202,6 +290,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: '#DCDCD8',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    gap: 4,
+  },
+  usernamePrefix: { fontSize: 15, color: '#8C8C88', fontWeight: '600' },
+  usernameInput: { flex: 1, minHeight: 44, fontSize: 15 },
   forgotPasswordLink: { minHeight: 44, justifyContent: 'center', alignItems: 'flex-end', marginBottom: 4 },
   forgotPasswordLabel: { fontSize: 13, color: '#161B2E', fontWeight: '600' },
   button: {

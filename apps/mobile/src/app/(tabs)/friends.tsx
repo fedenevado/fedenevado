@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -60,6 +60,21 @@ export default function FriendsScreen() {
   const [query, setQuery] = useState('');
   const [friends, setFriends] = useState<Friend[]>([]);
   const [searchResults, setSearchResults] = useState<FriendSearchResult[] | null>(null);
+
+  // Dos amigos pueden llamarse igual de verdad: el @username solo se muestra
+  // cuando hace falta para distinguirlos dentro de esta misma búsqueda.
+  const duplicateNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const result of searchResults ?? []) {
+      const key = result.name.trim().toLowerCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return new Set([...counts.entries()].filter(([, count]) => count > 1).map(([key]) => key));
+  }, [searchResults]);
+
+  function displayName(result: FriendSearchResult): string {
+    return duplicateNames.has(result.name.trim().toLowerCase()) ? `${result.name} (@${result.username})` : result.name;
+  }
   const [requests, setRequests] = useState<PendingRequest[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
@@ -351,13 +366,13 @@ export default function FriendsScreen() {
               ) : (
                 searchResults.map((result) => (
                   <View key={result.id} style={styles.row}>
-                    <Text style={styles.rowName}>{result.name}</Text>
+                    <Text style={styles.rowName}>{displayName(result)}</Text>
                     {result.relation === 'none' && (
                       <Pressable
                         onPress={() => handleSendRequest(result.id)}
                         disabled={busyId === result.id}
                         accessibilityRole="button"
-                        accessibilityLabel={`Añadir a ${result.name} como amigo`}
+                        accessibilityLabel={`Añadir a ${displayName(result)} como amigo`}
                         style={[styles.actionButton, busyId === result.id && styles.actionButtonDisabled]}
                       >
                         <Text style={styles.actionButtonLabel}>Añadir</Text>
@@ -373,7 +388,7 @@ export default function FriendsScreen() {
                           onPress={() => handleRemove(result.friendshipId!)}
                           disabled={busyId === result.friendshipId}
                           accessibilityRole="button"
-                          accessibilityLabel={`Rechazar solicitud de ${result.name}`}
+                          accessibilityLabel={`Rechazar solicitud de ${displayName(result)}`}
                           style={styles.iconButton}
                         >
                           <Text style={styles.iconButtonLabel}>Rechazar</Text>
@@ -382,7 +397,7 @@ export default function FriendsScreen() {
                           onPress={() => handleAccept(result.friendshipId!)}
                           disabled={busyId === result.friendshipId}
                           accessibilityRole="button"
-                          accessibilityLabel={`Aceptar solicitud de ${result.name}`}
+                          accessibilityLabel={`Aceptar solicitud de ${displayName(result)}`}
                           style={[styles.iconButton, styles.iconButtonPrimary]}
                         >
                           <Text style={styles.iconButtonLabelPrimary}>Aceptar</Text>

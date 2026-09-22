@@ -121,8 +121,18 @@ export interface PendingRequest {
 export type FriendRelation = 'none' | 'pending_sent' | 'pending_received' | 'friends';
 
 export interface FriendSearchResult extends Friend {
+  username: string;
   relation: FriendRelation;
   friendshipId: string | null;
+}
+
+export interface UsernameSuggestion {
+  username: string;
+}
+
+export interface UsernameAvailability {
+  available: boolean;
+  reason?: string;
 }
 
 export type PlanType = 'viaje' | 'comida' | 'evento' | 'plan_casual';
@@ -317,8 +327,15 @@ export interface AppNotification {
 }
 
 export const api = {
-  register: (name: string, email: string, password: string) =>
-    request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
+  register: (name: string, username: string, email: string, password: string) =>
+    request<AuthResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ name, username, email, password }),
+    }),
+  suggestUsername: (name: string) =>
+    request<UsernameSuggestion>(`/auth/username-suggestion?name=${encodeURIComponent(name)}`, {}),
+  checkUsernameAvailability: (username: string) =>
+    request<UsernameAvailability>(`/auth/username-availability?username=${encodeURIComponent(username)}`, {}),
   login: (email: string, password: string) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   forgotPassword: (email: string) =>

@@ -10,7 +10,7 @@ interface AuthContextValue {
   token: string | null;
   user: MeResponse | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, username: string, email: string, password: string) => Promise<void>;
   applySession: (accessToken: string, refreshToken: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -129,8 +129,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await applySession(accessToken, refreshToken);
   }
 
-  async function register(name: string, email: string, password: string) {
-    const { accessToken, refreshToken } = await api.register(name, email, password);
+  async function register(name: string, username: string, email: string, password: string) {
+    const { accessToken, refreshToken } = await api.register(name, username, email, password);
     await applySession(accessToken, refreshToken);
   }
 

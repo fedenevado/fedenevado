@@ -116,11 +116,11 @@ describe("FriendshipsService", () => {
   });
 
   describe("searchUsers", () => {
-    it("devuelve la relación correcta para cada usuario encontrado", async () => {
+    it("devuelve la relación correcta para cada usuario encontrado, incluyendo el username", async () => {
       const userFindMany = jest.fn().mockResolvedValue([
-        { id: "u2", name: "Marta", avatarUrl: null },
-        { id: "u3", name: "Julián", avatarUrl: null },
-        { id: "u4", name: "Laura", avatarUrl: null },
+        { id: "u2", name: "Marta", username: "marta", avatarUrl: null },
+        { id: "u3", name: "Julián", username: "julian", avatarUrl: null },
+        { id: "u4", name: "Laura", username: "laura", avatarUrl: null },
       ]);
       const friendshipFindMany = jest.fn().mockResolvedValue([
         { id: "f1", requesterId: "user-1", addresseeId: "u2", status: "accepted" },
@@ -132,10 +132,26 @@ describe("FriendshipsService", () => {
       const results = await service.searchUsers("user-1", "a");
 
       expect(results).toEqual([
-        { id: "u2", name: "Marta", avatarUrl: null, relation: "friends", friendshipId: "f1" },
-        { id: "u3", name: "Julián", avatarUrl: null, relation: "pending_sent", friendshipId: "f2" },
-        { id: "u4", name: "Laura", avatarUrl: null, relation: "pending_received", friendshipId: "f3" },
+        { id: "u2", name: "Marta", username: "marta", avatarUrl: null, relation: "friends", friendshipId: "f1" },
+        { id: "u3", name: "Julián", username: "julian", avatarUrl: null, relation: "pending_sent", friendshipId: "f2" },
+        { id: "u4", name: "Laura", username: "laura", avatarUrl: null, relation: "pending_received", friendshipId: "f3" },
       ]);
+    });
+
+    it("quita la @ inicial y busca también por username", async () => {
+      const userFindMany = jest.fn().mockResolvedValue([]);
+      const friendshipFindMany = jest.fn();
+      const service = buildService({ userFindMany, friendshipFindMany });
+
+      await service.searchUsers("user-1", "@ana92");
+
+      expect(userFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: expect.arrayContaining([{ username: { contains: "ana92", mode: "insensitive" } }]),
+          }),
+        }),
+      );
     });
   });
 });

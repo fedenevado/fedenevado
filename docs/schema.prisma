@@ -94,6 +94,7 @@ enum JoinRequestStatus {
 model User {
   id                 String   @id @default(uuid())
   name               String
+  username           String   @unique
   email              String   @unique
   authProvider       AuthProvider @map("auth_provider")
   avatarUrl          String?  @map("avatar_url")

@@ -22,6 +22,7 @@ export interface PendingRequestSummary {
 export type FriendRelation = "none" | "pending_sent" | "pending_received" | "friends";
 
 export interface FriendSearchResult extends FriendSummary {
+  username: string;
   relation: FriendRelation;
   friendshipId: string | null;
 }
@@ -57,7 +58,7 @@ export class FriendshipsService {
   }
 
   async searchUsers(userId: string, q: string): Promise<FriendSearchResult[]> {
-    const query = q.trim();
+    const query = q.trim().replace(/^@/, "");
     if (!query) {
       return [];
     }
@@ -68,6 +69,7 @@ export class FriendshipsService {
         OR: [
           { name: { contains: query, mode: "insensitive" } },
           { email: { contains: query, mode: "insensitive" } },
+          { username: { contains: query, mode: "insensitive" } },
         ],
       },
       take: 20,
@@ -103,6 +105,7 @@ export class FriendshipsService {
       return {
         id: u.id,
         name: u.name,
+        username: u.username,
         avatarUrl: u.avatarUrl,
         relation,
         friendshipId: friendship?.id ?? null,
