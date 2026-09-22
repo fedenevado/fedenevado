@@ -821,13 +821,18 @@ de la planificación.
 **Pendiente, depende de fase futura (anotado explícitamente, no omitido en
 silencio — ver regla de proceso arriba):**
 - **"Buscar hueco común" (disponibilidad compartida entre amigos)**:
-  `docs/roadmap.md` lo lista dentro de v0.6, pero el usuario aprobó
+  `docs/roadmap.md` lo listaba dentro de v0.6, pero el usuario aprobó
   explícitamente solo los 3 bloques de arriba (sin mencionar este). Requiere
   un endpoint nuevo (`GET /friendships/availability?friendIds=...`, con
   cuidado de privacidad: solo ocupado/libre por fecha, nunca qué plan es —
   mismo criterio que `FriendCalendarSheet` del prototipo) que no existe
-  todavía. Queda pendiente, depende de que se pida explícitamente (v0.6
-  ampliada o v0.7).
+  todavía. **Actualización 2026-09-22**: ya no es una línea suelta a la
+  espera de hueco — el usuario le dio nombre propio y prioridad alta como
+  fase **v1.1 — Disponibilidad compartida** en `docs/roadmap.md`, por ser
+  la funcionalidad diferencial más valorada según feedback directo de
+  varios amigos que ya han visto la idea. Queda pendiente hasta que se
+  empiece esa fase explícitamente (después de cerrar v1.0); el alcance
+  detallado se planifica entonces, no antes.
 - **Tarjeta "Debes X€" (`myPendingExpense`) en Inicio**: necesitaría un
   endpoint agregado nuevo entre todos los planes del usuario (hoy
   `GET /plans/:id/expenses/balances` es por plan, no hay agregado

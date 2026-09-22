@@ -105,6 +105,26 @@ explícitamente hasta que el usuario esté listo para salir de Expo Go y
 montar un development build con EAS + un proyecto de Firebase real; es el
 último paso, después de que el resto de v1.0 esté cerrado.
 
+## v1.1 — Disponibilidad compartida ⭐ prioridad alta (post-v1.0)
+
+Calendario de amigos superpuesto + "buscar hueco común", tal como aparece
+en el prototipo (`CalendarView` con capas por amigo, `FriendCalendarSheet`
+— ver `docs/cantixplora-prototype.jsx`). Sustituye a la mención de "buscar
+hueco común" que quedó pendiente desde v0.2/v0.6 (`docs/progress.md`) — a
+partir de ahora esta es la fase con nombre propio para esa pieza, no una
+línea suelta dentro de otra fase.
+
+**No es un "nice to have" más de backlog — es la funcionalidad
+diferencial más valorada** según feedback directo de varios amigos que ya
+han visto la idea (nota del usuario, 2026-09-22). Por eso tiene su propia
+fase numerada en vez de vivir en el backlog genérico junto a cosas menores
+como "eliminar amigo": es la primera candidata a planificar en detalle
+después de cerrar v1.0, no una idea más a la espera de hueco.
+
+Alcance detallado todavía sin definir — se planifica cuando se empiece
+esta fase, no antes (ver "Una sesión = una fase" al principio de este
+documento).
+
 ## Backlog (sin fecha, no implementar sin pedirlo explícitamente)
 
 - Eliminar amigo.
