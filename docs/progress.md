@@ -392,9 +392,13 @@ GET  /invitations/abc/preview      → 404 "Enlace de invitación no válido o c
 POST /invitations/abc/join (sin auth) → 401 "Falta el token de autenticación."
 ```
 
-**No verificado (requiere dispositivo):** el flujo completo en Expo Go
-(enlace sin sesión → registro → onboarding → unión al plan); checklist
-VoiceOver/TalkBack de la pantalla.
+**Verificado en Expo Go, dispositivo real (2026-09-22):** confirmado por
+el usuario que el flujo completo (enlace sin sesión → "Crear cuenta para
+unirme" → registro → onboarding → unión al plan) funciona correctamente de
+principio a fin. Pendiente todavía: checklist específico de accesibilidad
+VoiceOver/TalkBack de esta pantalla (no mencionado en la confirmación —
+mismo criterio que el resto de fases, no se marca como resuelto sin que se
+confirme explícitamente); ver "Deuda de accesibilidad arrastrada".
 
 **Pendiente, anotado a petición del usuario (no se hace ahora):**
 - **Pendiente menor — `invitationId` en planes privados.** En plan público
@@ -411,12 +415,12 @@ VoiceOver/TalkBack de la pantalla.
   `NotificationsService.buildMessage` para `join_request_received`. No se
   migra ahora; `docs/schema.prisma` y `apps/backend/prisma/schema.prisma`
   siguen idénticos.
-- **Datos huérfanos de la prueba del usuario** (2 `plan_participants` con
-  `user_id NULL` en "Boda Ana y Fede": "Tomás" y "Federico", ambos `yes`,
-  invitación `bbcae701…`; 0 `join_requests` sin cuenta, 0 notificaciones sin
-  actor, 0 `expense_splits` de ellos). **Pendiente del visto bueno del
-  usuario para borrarlos**; al borrarlos, `invitations.uses_count` de esa
-  invitación (ahora 3) debería bajar a 1.
+- **Datos huérfanos de la prueba del usuario — borrados (2026-09-22).**
+  2 `plan_participants` con `user_id NULL` en "Boda Ana y Fede" ("Tomás" y
+  "Federico", ambos `yes`, invitación `bbcae701…`) borrados por petición
+  explícita del usuario, tras confirmar por `psql` que no tenían
+  `expense_splits` ni `join_requests` asociados. `invitations.uses_count`
+  de esa invitación bajó de 3 a 1, como se había anotado que debía pasar.
 - Si el usuario pulsa "¿Olvidaste tu contraseña?" desde el login abierto
   desde una invitación, el `?invite=` se pierde (caso límite aceptado).
 
