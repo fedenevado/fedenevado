@@ -75,13 +75,12 @@ usuario.
 - **Tareas de ruta**: compartibles con amigos dentro de un plan, con
   checklist propia por usuario, y vista agregada en Inicio.
 
-## v1.0 — Lanzamiento (pulido, push, onboarding)
+## v1.0 — Lanzamiento (pulido, onboarding)
 
 - **Notificaciones**: centro de notificaciones real, todas clicables
   (llevan a la pantalla/pestaña correspondiente). Conecta con los
   disparadores ya anticipados en fases anteriores (`expense_settled`,
-  `new_message`, etc. — ver deuda aplazada en `docs/progress.md`). Push
-  con Firebase Cloud Messaging.
+  `new_message`, etc. — ver deuda aplazada en `docs/progress.md`).
 - **Onboarding**: primer arranque para una cuenta nueva.
 - **Acceso de invitado sin cuenta** — revisado el 2026-09-21 (ver
   `docs/progress.md`, "Paso E''"): el enlace de invitación muestra una vista
@@ -96,6 +95,15 @@ usuario.
 - **Seguridad**: repaso final de CORS, rate-limits, verificación de
   pertenencia en todos los endpoints, logs sin datos sensibles.
 - Rendimiento y limpieza general antes de cualquier release pública.
+
+## Push con Firebase Cloud Messaging (fuera del criterio de cierre de v1.0)
+
+Paso aparte, **no forma parte de lo que hay que cerrar para dar v1.0 por
+terminado** — decisión tomada con el usuario antes de empezar a programar
+la fase (2026-09-15, ver `docs/progress.md`, "Paso E"). Se aplaza
+explícitamente hasta que el usuario esté listo para salir de Expo Go y
+montar un development build con EAS + un proyecto de Firebase real; es el
+último paso, después de que el resto de v1.0 esté cerrado.
 
 ## Backlog (sin fecha, no implementar sin pedirlo explícitamente)
 
