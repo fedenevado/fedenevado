@@ -49,7 +49,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#161B2E',
+        tabBarActiveTintColor: '#2D1E1B',
         tabBarInactiveTintColor: '#B8B2A0',
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
@@ -126,12 +126,12 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#161B2E',
+    backgroundColor: '#2D1E1B',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  avatarActive: { borderColor: '#161B2E' },
+  avatarActive: { borderColor: '#2D1E1B' },
   avatarLabel: { color: '#fff', fontSize: 9, fontWeight: '700' },
 });

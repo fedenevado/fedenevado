@@ -174,7 +174,7 @@ export function CalendarView({ plans, reminders, onSelectDay }: CalendarViewProp
               : firstEvent
                 ? planTypeColor(firstEvent.type)
                 : '#fff';
-          const textColor = isPast ? '#B8B2A8' : isMulti ? '#161B2E' : firstEvent ? '#fff' : '#161B2E';
+          const textColor = isPast ? '#B8B2A8' : isMulti ? '#2D1E1B' : firstEvent ? '#fff' : '#2D1E1B';
           const reminderDotColor = allRemindersDone ? 'transparent' : firstEvent && !isMulti ? '#fff' : '#3F6FBF';
 
           const labelParts = [`${day} de ${monthLabel}`];
@@ -233,7 +233,7 @@ export function CalendarView({ plans, reminders, onSelectDay }: CalendarViewProp
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  monthLabel: { fontSize: 17, fontWeight: '700', color: '#161B2E', textTransform: 'capitalize' },
+  monthLabel: { fontSize: 17, fontWeight: '700', color: '#2D1E1B', textTransform: 'capitalize' },
   navButtons: { flexDirection: 'row' },
   navButton: { minWidth: 40, minHeight: 40, alignItems: 'center', justifyContent: 'center' },
   navCircle: {
@@ -246,9 +246,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  navArrow: { fontSize: 16, color: '#161B2E', fontWeight: '700' },
+  navArrow: { fontSize: 16, color: '#2D1E1B', fontWeight: '700' },
   todayLink: { alignSelf: 'flex-end', minHeight: 32, justifyContent: 'center', marginBottom: 6 },
-  todayLinkLabel: { fontSize: 11, color: '#161B2E', fontWeight: '700' },
+  todayLinkLabel: { fontSize: 11, color: '#2D1E1B', fontWeight: '700' },
   weekdayRow: { flexDirection: 'row', marginBottom: 4 },
   weekdayLabel: { flexBasis: '14.28%', textAlign: 'center', fontSize: 9, fontWeight: '700', color: '#6B6B67' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
   },
-  cellToday: { borderWidth: 2, borderColor: '#161B2E' },
+  cellToday: { borderWidth: 2, borderColor: '#2D1E1B' },
   cellMultiBorder: { borderColor: '#C7C7C2' },
   cellDay: { fontSize: 12, fontWeight: '600' },
   cellTypeAbbr: { fontSize: 8, fontWeight: '700', opacity: 0.9 },

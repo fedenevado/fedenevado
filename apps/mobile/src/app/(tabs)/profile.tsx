@@ -68,19 +68,19 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F2', padding: 20 },
-  title: { fontSize: 20, fontWeight: '700', color: '#161B2E', marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: '700', color: '#2D1E1B', marginBottom: 16 },
   avatarWrap: { alignItems: 'center', marginBottom: 20 },
   avatar: {
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: '#161B2E',
+    backgroundColor: '#2D1E1B',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarLabel: { color: '#fff', fontSize: 24, fontWeight: '700' },
   card: { backgroundColor: '#fff', borderRadius: 10, padding: 16, marginBottom: 16 },
-  name: { fontSize: 16, fontWeight: '700', color: '#161B2E' },
+  name: { fontSize: 16, fontWeight: '700', color: '#2D1E1B' },
   email: { fontSize: 13, color: '#6B6B67', marginTop: 4 },
   sectionLabel: {
     fontSize: 11,
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  rowLabel: { fontSize: 13, color: '#161B2E', fontWeight: '600' },
+  rowLabel: { fontSize: 13, color: '#2D1E1B', fontWeight: '600' },
   rowChevron: { fontSize: 16, color: '#6B6B67' },
   logoutButton: {
     minHeight: 48,

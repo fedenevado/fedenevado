@@ -698,6 +698,58 @@ TalkBack — el motivo de esta sesión era justamente cerrar esa deuda, así
 que no se marca como resuelta sin tu confirmación explícita en
 dispositivo real, mismo criterio que el resto del proyecto.
 
+### Paso I — Color de marca principal: azul `#161B2E` → marrón `#2D1E1B` (pedido explícito del usuario, 2026-09-23)
+
+Sustitución 1:1 en los 22 archivos que usaban `#161B2E` (138 ocurrencias)
+— cabeceras, botones primarios, texto oscuro principal, pestaña/chip
+activo, `tabBarActiveTintColor`, avatar de Perfil, burbuja propia del
+chat, tarjeta "Cerrar cuentas", pantallas de login/recuperar contraseña.
+A diferencia de las causas B/C del Paso H (donde el color original
+fallaba contraste y hubo que elegir uno nuevo con cuidado), aquí se
+verificó primero con la fórmula real de luminancia WCAG que el marrón
+nuevo pasa 4.5:1 en todo fondo claro usado en la app (14.0–16.0:1, con
+margen amplio aunque ligeramente por debajo del azul anterior) antes de
+tocar ningún archivo — sustitución segura sin casos especiales.
+
+Se revisó además, sin asumir que fuera blanco puro en todos los casos, el
+color de texto/icono real en los 5 sitios donde `#2D1E1B` se usa como
+FONDO: pantalla de login (título `#fff` puro; **subtítulo en
+`rgba(255,255,255,0.7)`, detectado y calculado aparte** — color efectivo
+tras mezclarse con el fondo `rgb(192,188,187)`, 8.46:1, baja ligeramente
+frente al 8.86:1 que daba con el azul anterior pero sigue muy por encima
+del umbral), botones primarios (`buttonLabel` `#fff` puro),
+`tabBarActiveTintColor` (confirmado que la tab bar no tiene
+`backgroundColor` propio, así que cae sobre blanco), avatar de Perfil
+(`avatarLabel` `#fff` puro), tarjeta "Cerrar cuentas" en Gastos
+(`settledTitle`/`settledEmpty`/`transferNames`/`reopenButtonLabel`,
+todos `#fff` puro).
+
+Evidencia:
+```
+$ grep -rl "#161B2E" apps/mobile/src   → ninguna coincidencia
+
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json
+(sin salida — sin errores de tipos)
+
+$ npx expo export --platform android
+Exported: dist   (sin errores)
+```
+
+Contraste real (fórmula de luminancia relativa WCAG):
+```
+#2D1E1B vs blanco / #F5F5F2 / #F0F0EE / #FAFAF8   → 15.99 / 14.64 / 14.02 / 15.30  (todos ≥4.5)
+Login, título #fff puro vs #2D1E1B                → 15.993:1  PASA
+Login, subtítulo rgba(255,255,255,0.7) vs #2D1E1B →  8.458:1  PASA
+Botones primarios, buttonLabel #fff vs #2D1E1B    → 15.993:1  PASA
+tabBarActiveTintColor #2D1E1B vs tab bar (blanco) → 15.993:1  PASA
+Avatar Perfil, avatarLabel #fff vs #2D1E1B        → 15.993:1  PASA
+Tarjeta "Cerrar cuentas", textos #fff vs #2D1E1B  → 15.993:1  PASA
+```
+
+**No verificado todavía (requiere tu dispositivo)**: prueba visual en
+Expo Go de que el nuevo marrón se vea correctamente en las 22 pantallas
+tocadas (cabeceras, botones, pestañas activas, avatar).
+
 ### Paso extra — Barra de navegación inferior fija (pedido explícito del usuario, 2026-09-15)
 
 El usuario pidió sustituir la fila de botones de texto (Planes/Amigos/

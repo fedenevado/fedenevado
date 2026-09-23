@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#fff',
   },
-  value: { fontSize: 14, color: '#161B2E' },
+  value: { fontSize: 14, color: '#2D1E1B' },
   placeholder: { fontSize: 14, color: '#6B6B67' },
   clearButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   clearLabel: { fontSize: 16, color: '#6B6B67', fontWeight: '600' },
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   confirmButton: {
     minHeight: 44,
     borderRadius: 8,
-    backgroundColor: '#161B2E',
+    backgroundColor: '#2D1E1B',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,

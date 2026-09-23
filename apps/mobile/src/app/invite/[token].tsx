@@ -225,12 +225,12 @@ export default function InvitationScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F2', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  title: { fontSize: 17, fontWeight: '700', color: '#161B2E', textAlign: 'center', marginBottom: 8 },
+  title: { fontSize: 17, fontWeight: '700', color: '#2D1E1B', textAlign: 'center', marginBottom: 8 },
   subtitle: { fontSize: 13, color: '#6B6B67', textAlign: 'center', marginBottom: 20, maxWidth: 280 },
   primaryButton: {
     minHeight: 44,
     borderRadius: 8,
-    backgroundColor: '#161B2E',
+    backgroundColor: '#2D1E1B',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#161B2E',
+    backgroundColor: '#2D1E1B',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   primaryButtonWide: {
     minHeight: 44,
     borderRadius: 8,
-    backgroundColor: '#161B2E',
+    backgroundColor: '#2D1E1B',
     alignItems: 'center',
     justifyContent: 'center',
   },

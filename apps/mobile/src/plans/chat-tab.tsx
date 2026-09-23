@@ -183,10 +183,10 @@ const styles = StyleSheet.create({
   bubbleRowMine: { justifyContent: 'flex-end' },
   bubbleRowTheirs: { justifyContent: 'flex-start' },
   bubble: { maxWidth: '75%', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
-  bubbleMine: { backgroundColor: '#161B2E' },
+  bubbleMine: { backgroundColor: '#2D1E1B' },
   bubbleTheirs: { backgroundColor: '#fff' },
   senderName: { fontSize: 10, fontWeight: '700', color: '#0E6E64', marginBottom: 2 },
-  bubbleText: { fontSize: 13, color: '#161B2E' },
+  bubbleText: { fontSize: 13, color: '#2D1E1B' },
   bubbleTextMine: { color: '#fff' },
   inputRow: { flexDirection: 'row', gap: 8, marginTop: 10, alignItems: 'flex-end' },
   input: {

@@ -47,7 +47,7 @@ function iconForNotification(type: AppNotificationType) {
   if (type === 'plan_invite') return <UserPlus size={15} color="#0E6E64" />;
   if (type === 'new_expense' || type === 'expense_settled') return <Receipt size={15} color="#0E6E64" />;
   if (type === 'rsvp_reminder') return <CalendarClock size={15} color="#FF5A3C" />;
-  return <MessageCircle size={15} color="#161B2E" />;
+  return <MessageCircle size={15} color="#2D1E1B" />;
 }
 
 export default function FriendsScreen() {
@@ -417,7 +417,7 @@ export default function FriendsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F2', padding: 20 },
-  title: { fontSize: 20, fontWeight: '700', color: '#161B2E', marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: '700', color: '#2D1E1B', marginBottom: 16 },
   tabRow: { flexDirection: 'row', gap: 6, marginBottom: 16 },
   tab: {
     flex: 1,
@@ -429,8 +429,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DCDCD8',
   },
-  tabActive: { backgroundColor: '#161B2E', borderColor: '#161B2E' },
-  tabLabel: { fontSize: 13, fontWeight: '600', color: '#161B2E' },
+  tabActive: { backgroundColor: '#2D1E1B', borderColor: '#2D1E1B' },
+  tabLabel: { fontSize: 13, fontWeight: '600', color: '#2D1E1B' },
   tabLabelActive: { color: '#fff', fontWeight: '800', textDecorationLine: 'underline' },
   scrollContent: { paddingBottom: 40 },
   input: {
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     minHeight: 44,
   },
-  markAllLabel: { fontSize: 11, color: '#161B2E', fontWeight: '700' },
+  markAllLabel: { fontSize: 11, color: '#2D1E1B', fontWeight: '700' },
   card: { backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, marginBottom: 20 },
   cardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 },
   cardRowDivider: { borderBottomWidth: 1, borderBottomColor: '#FAFAF8' },
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#161B2E',
+    backgroundColor: '#2D1E1B',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -492,14 +492,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 8,
   },
-  rowName: { fontSize: 14, color: '#161B2E', flexShrink: 1 },
+  rowName: { fontSize: 14, color: '#2D1E1B', flexShrink: 1 },
   statusText: { fontSize: 12, color: '#6B6B67' },
   actionButton: {
     minHeight: 44,
     minWidth: 44,
     paddingHorizontal: 14,
     borderRadius: 18,
-    backgroundColor: '#161B2E',
+    backgroundColor: '#2D1E1B',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconButtonPrimary: { backgroundColor: '#161B2E' },
+  iconButtonPrimary: { backgroundColor: '#2D1E1B' },
   iconButtonLabel: { color: '#6B6B67', fontSize: 11, fontWeight: '700' },
   iconButtonLabelPrimary: { color: '#fff', fontSize: 11, fontWeight: '700' },
   roundButton: {
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  roundButtonPrimary: { backgroundColor: '#161B2E' },
+  roundButtonPrimary: { backgroundColor: '#2D1E1B' },
   notifRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 10, minHeight: 44 },
   notifIcon: {
     width: 28,
@@ -538,6 +538,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   notifText: { flex: 1, fontSize: 12, lineHeight: 17, color: '#6B6B67', fontWeight: '400' },
-  notifTextUnread: { color: '#161B2E', fontWeight: '600' },
+  notifTextUnread: { color: '#2D1E1B', fontWeight: '600' },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF5A3C', marginTop: 5, flexShrink: 0 },
 });

@@ -263,7 +263,7 @@ export default function PlansScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F2', padding: 20 },
-  title: { fontSize: 20, fontWeight: '700', color: '#161B2E', marginBottom: 12 },
+  title: { fontSize: 20, fontWeight: '700', color: '#2D1E1B', marginBottom: 12 },
   actionsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   filterButton: {
     minHeight: 44,
@@ -275,14 +275,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  filterButtonActive: { backgroundColor: '#161B2E', borderColor: '#161B2E' },
-  filterButtonLabel: { fontSize: 12, fontWeight: '700', color: '#161B2E' },
+  filterButtonActive: { backgroundColor: '#2D1E1B', borderColor: '#2D1E1B' },
+  filterButtonLabel: { fontSize: 12, fontWeight: '700', color: '#2D1E1B' },
   filterButtonLabelActive: { color: '#fff' },
   newButton: {
     flex: 1,
     minHeight: 44,
     borderRadius: 20,
-    backgroundColor: '#161B2E',
+    backgroundColor: '#2D1E1B',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipLabel: { fontSize: 12, fontWeight: '600', color: '#161B2E' },
+  chipLabel: { fontSize: 12, fontWeight: '600', color: '#2D1E1B' },
   chipLabelActive: { color: '#fff' },
   dateRow: { flexDirection: 'row', gap: 8 },
   dateField: { flex: 1 },
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   typeDot: { width: 10, height: 10, borderRadius: 5 },
   planInfo: { flex: 1 },
-  planTitle: { fontSize: 14, fontWeight: '600', color: '#161B2E' },
+  planTitle: { fontSize: 14, fontWeight: '600', color: '#2D1E1B' },
   planMeta: { fontSize: 12, color: '#6B6B67', marginTop: 2 },
-  rsvpBadge: { fontSize: 11, fontWeight: '700', color: '#161B2E' },
+  rsvpBadge: { fontSize: 11, fontWeight: '700', color: '#2D1E1B' },
 });

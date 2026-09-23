@@ -263,7 +263,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#161B2E' },
+  flex: { flex: 1, backgroundColor: '#2D1E1B' },
   container: { flexGrow: 1, padding: 24, paddingTop: 64 },
   title: { fontSize: 26, fontWeight: '700', color: '#fff', marginBottom: 4 },
   subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 32 },
@@ -277,8 +277,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#F0F0EE',
   },
-  tabActive: { backgroundColor: '#161B2E' },
-  tabLabel: { fontSize: 13, fontWeight: '600', color: '#161B2E' },
+  tabActive: { backgroundColor: '#2D1E1B' },
+  tabLabel: { fontSize: 13, fontWeight: '600', color: '#2D1E1B' },
   tabLabelActive: { color: '#fff', fontWeight: '800', textDecorationLine: 'underline' },
   input: {
     minHeight: 44,
@@ -304,10 +304,10 @@ const styles = StyleSheet.create({
   usernamePrefix: { fontSize: 15, color: '#6B6B67', fontWeight: '600' },
   usernameInput: { flex: 1, minHeight: 44, fontSize: 15 },
   forgotPasswordLink: { minHeight: 44, justifyContent: 'center', alignItems: 'flex-end', marginBottom: 4 },
-  forgotPasswordLabel: { fontSize: 13, color: '#161B2E', fontWeight: '600' },
+  forgotPasswordLabel: { fontSize: 13, color: '#2D1E1B', fontWeight: '600' },
   button: {
     minHeight: 44,
-    backgroundColor: '#161B2E',
+    backgroundColor: '#2D1E1B',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
