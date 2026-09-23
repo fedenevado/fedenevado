@@ -77,7 +77,9 @@ export default function InvitationScreen() {
       return (
         <View style={styles.container}>
           <Text style={styles.title}>No se pudo abrir la invitación</Text>
-          <Text style={styles.subtitle}>{previewError}</Text>
+          <Text style={styles.subtitle} accessibilityLiveRegion="polite" role="alert">
+            {previewError}
+          </Text>
           <Pressable
             onPress={() => router.push('/login' as Href)}
             accessibilityRole="button"
@@ -202,7 +204,11 @@ export default function InvitationScreen() {
       {status === 'error' && (
         <>
           <Text style={styles.title}>No se pudo abrir la invitación</Text>
-          {error && <Text style={styles.subtitle}>{error}</Text>}
+          {error && (
+            <Text style={styles.subtitle} accessibilityLiveRegion="polite" role="alert">
+              {error}
+            </Text>
+          )}
           <Pressable
             onPress={() => router.replace('/plans' as Href)}
             accessibilityRole="button"
@@ -220,7 +226,7 @@ export default function InvitationScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F2', alignItems: 'center', justifyContent: 'center', padding: 24 },
   title: { fontSize: 17, fontWeight: '700', color: '#161B2E', textAlign: 'center', marginBottom: 8 },
-  subtitle: { fontSize: 13, color: '#8C8C88', textAlign: 'center', marginBottom: 20, maxWidth: 280 },
+  subtitle: { fontSize: 13, color: '#6B6B67', textAlign: 'center', marginBottom: 20, maxWidth: 280 },
   primaryButton: {
     minHeight: 44,
     borderRadius: 8,
@@ -252,8 +258,8 @@ const styles = StyleSheet.create({
   guestSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 6 },
   guestOrganizer: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
   guestBody: { flex: 1, padding: 20 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', color: '#8C8C88', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
-  sectionLabelSm: { fontSize: 11, fontWeight: '700', color: '#8C8C88', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  sectionLabel: { fontSize: 11, fontWeight: '700', color: '#6B6B67', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  sectionLabelSm: { fontSize: 11, fontWeight: '700', color: '#6B6B67', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
   avatarRow: { flexDirection: 'row', marginBottom: 20 },
   avatarCircle: {
     width: 30,

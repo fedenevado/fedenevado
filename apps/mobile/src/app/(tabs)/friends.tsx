@@ -283,7 +283,7 @@ export default function FriendsScreen() {
                             hitSlop={9}
                             style={styles.roundButton}
                           >
-                            <X size={13} color="#8C8C88" />
+                            <X size={13} color="#6B6B67" />
                           </Pressable>
                           <Pressable
                             onPress={() => handleAccept(request.friendshipId)}
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   },
   tabActive: { backgroundColor: '#161B2E', borderColor: '#161B2E' },
   tabLabel: { fontSize: 13, fontWeight: '600', color: '#161B2E' },
-  tabLabelActive: { color: '#fff' },
+  tabLabelActive: { color: '#fff', fontWeight: '800', textDecorationLine: 'underline' },
   scrollContent: { paddingBottom: 40 },
   input: {
     minHeight: 44,
@@ -445,10 +445,10 @@ const styles = StyleSheet.create({
   },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   loading: { marginTop: 24 },
-  emptyText: { fontSize: 13, color: '#8C8C88', textAlign: 'center', paddingVertical: 20 },
+  emptyText: { fontSize: 13, color: '#6B6B67', textAlign: 'center', paddingVertical: 20 },
   sectionLabel: {
     fontSize: 11,
-    color: '#8C8C88',
+    color: '#6B6B67',
     textTransform: 'uppercase',
     letterSpacing: 1,
     fontWeight: '700',
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   },
   sectionLabelBare: {
     fontSize: 11,
-    color: '#8C8C88',
+    color: '#6B6B67',
     textTransform: 'uppercase',
     letterSpacing: 1,
     fontWeight: '700',
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   rowName: { fontSize: 14, color: '#161B2E', flexShrink: 1 },
-  statusText: { fontSize: 12, color: '#8C8C88' },
+  statusText: { fontSize: 12, color: '#6B6B67' },
   actionButton: {
     minHeight: 44,
     minWidth: 44,
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconButtonPrimary: { backgroundColor: '#161B2E' },
-  iconButtonLabel: { color: '#8C8C88', fontSize: 11, fontWeight: '700' },
+  iconButtonLabel: { color: '#6B6B67', fontSize: 11, fontWeight: '700' },
   iconButtonLabelPrimary: { color: '#fff', fontSize: 11, fontWeight: '700' },
   roundButton: {
     width: 28,
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  notifText: { flex: 1, fontSize: 12, lineHeight: 17, color: '#8C8C88', fontWeight: '400' },
+  notifText: { flex: 1, fontSize: 12, lineHeight: 17, color: '#6B6B67', fontWeight: '400' },
   notifTextUnread: { color: '#161B2E', fontWeight: '600' },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF5A3C', marginTop: 5, flexShrink: 0 },
 });

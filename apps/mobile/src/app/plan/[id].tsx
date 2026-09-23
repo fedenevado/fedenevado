@@ -135,7 +135,13 @@ export default function PlanDetailScreen() {
   if (isLoading || !plan) {
     return (
       <View style={styles.loadingContainer}>
-        {error ? <Text style={styles.error}>{error}</Text> : <ActivityIndicator style={styles.loading} accessibilityLabel="Cargando plan" />}
+        {error ? (
+          <Text style={styles.error} accessibilityLiveRegion="polite" role="alert">
+            {error}
+          </Text>
+        ) : (
+          <ActivityIndicator style={styles.loading} accessibilityLabel="Cargando plan" />
+        )}
       </View>
     );
   }
@@ -167,7 +173,11 @@ export default function PlanDetailScreen() {
           </Text>
         </View>
 
-        {error && <Text style={styles.error}>{error}</Text>}
+        {error && (
+          <Text style={styles.error} accessibilityLiveRegion="polite" role="alert">
+            {error}
+          </Text>
+        )}
 
         <View style={styles.gateButtons}>
           {(['yes', 'maybe', 'no'] as const).map((key) => (
@@ -247,6 +257,7 @@ export default function PlanDetailScreen() {
             onPress={() => setRsvpPromptOpen(true)}
             accessibilityRole="button"
             accessibilityLabel={`Tu respuesta: ${RSVP_LABEL[myRsvp]}. Toca para cambiarla`}
+            hitSlop={{ top: 6, bottom: 6 }}
             style={styles.rsvpBadge}
           >
             <Text style={styles.rsvpBadgeLabel}>{RSVP_LABEL[myRsvp].toUpperCase()}</Text>
@@ -256,6 +267,7 @@ export default function PlanDetailScreen() {
             onPress={() => setShowGuestList(true)}
             accessibilityRole="button"
             accessibilityLabel={`Ver confirmados, ${confirmedParticipants.length}`}
+            hitSlop={{ top: 6, bottom: 6 }}
             style={styles.avatarStack}
           >
             {visibleAvatars.map((p, i) => (
@@ -567,7 +579,7 @@ const styles = StyleSheet.create({
   },
   tabActive: { backgroundColor: '#161B2E', borderColor: '#161B2E' },
   tabLabel: { fontSize: 13, fontWeight: '600', color: '#161B2E' },
-  tabLabelActive: { color: '#fff' },
+  tabLabelActive: { color: '#fff', fontWeight: '800', textDecorationLine: 'underline' },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   loading: { marginTop: 24 },
   scrollContent: { paddingBottom: 40 },
@@ -579,7 +591,7 @@ const styles = StyleSheet.create({
   cardBold: { fontWeight: '700' },
   sectionLabel: {
     fontSize: 11,
-    color: '#8C8C88',
+    color: '#6B6B67',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginTop: 20,
@@ -596,7 +608,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   participantName: { fontSize: 13, color: '#161B2E' },
-  participantRsvp: { fontSize: 12, color: '#8C8C88', fontWeight: '600' },
+  participantRsvp: { fontSize: 12, color: '#6B6B67', fontWeight: '600' },
   ownerActions: { flexDirection: 'row', gap: 8, marginTop: 20 },
   secondaryButton: {
     flex: 1,
@@ -613,7 +625,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: 8,
-    backgroundColor: '#FF5A3C',
+    backgroundColor: '#C2410C',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -632,7 +644,7 @@ const styles = StyleSheet.create({
   dangerWideButton: {
     minHeight: 44,
     borderRadius: 8,
-    backgroundColor: '#FF5A3C',
+    backgroundColor: '#C2410C',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -646,9 +658,9 @@ const styles = StyleSheet.create({
   },
   wave: { fontSize: 34, marginBottom: 10 },
   gateTitle: { fontSize: 18, fontWeight: '700', color: '#161B2E', marginBottom: 6, textAlign: 'center' },
-  gateSubtitle: { fontSize: 13, color: '#8C8C88', marginBottom: 18, textAlign: 'center', maxWidth: 260 },
+  gateSubtitle: { fontSize: 13, color: '#6B6B67', marginBottom: 18, textAlign: 'center', maxWidth: 260 },
   previewCard: { backgroundColor: '#fff', borderRadius: 10, padding: 14, width: '100%', maxWidth: 280, marginBottom: 18 },
-  previewLabel: { fontSize: 10, color: '#8C8C88', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  previewLabel: { fontSize: 10, color: '#6B6B67', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
   previewLine: { fontSize: 13, color: '#161B2E', marginBottom: 4 },
   previewBold: { fontWeight: '700' },
   gateButtons: { width: '100%', maxWidth: 280, gap: 10 },
@@ -665,7 +677,7 @@ const styles = StyleSheet.create({
   gateButtonSecondary: { backgroundColor: '#fff' },
   gateButtonSecondaryLabel: { color: '#161B2E', fontSize: 14, fontWeight: '700' },
   laterLink: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  laterLinkLabel: { fontSize: 12, color: '#8C8C88' },
+  laterLinkLabel: { fontSize: 12, color: '#6B6B67' },
   overlay: {
     position: 'absolute',
     inset: 0,
@@ -676,7 +688,7 @@ const styles = StyleSheet.create({
   },
   dialog: { backgroundColor: '#fff', borderRadius: 14, padding: 20, width: '100%', maxWidth: 320 },
   dialogTitle: { fontSize: 15, fontWeight: '700', color: '#161B2E', marginBottom: 6 },
-  dialogSubtitle: { fontSize: 12, color: '#8C8C88', marginBottom: 16 },
+  dialogSubtitle: { fontSize: 12, color: '#6B6B67', marginBottom: 16 },
   dialogButtons: { flexDirection: 'row', gap: 8 },
   dialogButtonsColumn: { gap: 8, marginBottom: 4 },
 });

@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   markAllLabel: { fontSize: 12, fontWeight: '700', color: '#161B2E' },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   loading: { marginTop: 24 },
-  emptyText: { fontSize: 12, color: '#8C8C88', textAlign: 'center', marginTop: 40 },
+  emptyText: { fontSize: 12, color: '#6B6B67', textAlign: 'center', marginTop: 40 },
   scrollContent: { paddingBottom: 40 },
   row: {
     minHeight: 56,
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   rowContent: { flex: 1 },
   rowTopLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
   unreadLabel: { fontSize: 10, fontWeight: '700', color: '#3F6FBF', textTransform: 'uppercase' },
-  rowTime: { fontSize: 10, color: '#8C8C88' },
+  rowTime: { fontSize: 10, color: '#6B6B67' },
   rowMessage: { fontSize: 13, color: '#161B2E' },
   rowMessageUnread: { fontWeight: '700' },
 });

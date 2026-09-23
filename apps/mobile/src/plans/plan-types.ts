@@ -2,8 +2,13 @@ import type { PlanType } from '@/api/client';
 
 export const PLAN_TYPE_OPTIONS: { value: PlanType; label: string; color: string }[] = [
   { value: 'viaje', label: 'Viaje', color: '#0E6E64' },
-  { value: 'comida', label: 'Comida', color: '#C9A15A' },
-  { value: 'evento', label: 'Evento', color: '#FF5A3C' },
+  // #C9A15A (dorado original) y #FF5A3C (naranja de marca) no pasan 4.5:1
+  // como texto ni como fondo con texto blanco encima (2.41:1 y 3.10:1).
+  // Estos tonos más oscuros sí cumplen AA, manteniendo la misma familia de
+  // color (dorado/naranja) — se propaga automáticamente a las 6 pantallas
+  // que usan planTypeColor()/PLAN_TYPE_OPTIONS.
+  { value: 'comida', label: 'Comida', color: '#7D6220' },
+  { value: 'evento', label: 'Evento', color: '#C2410C' },
   { value: 'plan_casual', label: 'Plan casual', color: '#6B5CA5' },
 ];
 
@@ -12,7 +17,7 @@ export function planTypeLabel(type: PlanType): string {
 }
 
 export function planTypeColor(type: PlanType): string {
-  return PLAN_TYPE_OPTIONS.find((t) => t.value === type)?.color ?? '#8C8C88';
+  return PLAN_TYPE_OPTIONS.find((t) => t.value === type)?.color ?? '#6B6B67';
 }
 
 export function isoDateToDate(iso: string): Date {

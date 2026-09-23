@@ -120,6 +120,7 @@ export function GuestListSheet({ token, plan, isOwner, onClose, onParticipantsCh
                       onPress={copyLink}
                       accessibilityRole="button"
                       accessibilityLabel="Copiar enlace de invitación"
+                      hitSlop={{ top: 6, bottom: 6 }}
                       style={[styles.copyButton, linkCopied && styles.copyButtonDone]}
                     >
                       <Text style={styles.copyButtonLabel}>{linkCopied ? 'Copiado ✓' : 'Copiar'}</Text>
@@ -144,6 +145,7 @@ export function GuestListSheet({ token, plan, isOwner, onClose, onParticipantsCh
                           disabled={busy}
                           accessibilityRole="button"
                           accessibilityLabel={`Rechazar solicitud de ${r.name}`}
+                          hitSlop={7}
                           style={styles.rejectButton}
                         >
                           <Text style={styles.rejectButtonLabel}>✕</Text>
@@ -153,6 +155,7 @@ export function GuestListSheet({ token, plan, isOwner, onClose, onParticipantsCh
                           disabled={busy}
                           accessibilityRole="button"
                           accessibilityLabel={`Aprobar solicitud de ${r.name}`}
+                          hitSlop={7}
                           style={styles.approveButton}
                         >
                           <Text style={styles.approveButtonLabel}>✓</Text>
@@ -200,11 +203,11 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 16, fontWeight: '700', color: '#161B2E' },
   closeButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  closeLabel: { fontSize: 16, color: '#8C8C88' },
+  closeLabel: { fontSize: 16, color: '#6B6B67' },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 24 },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   inviteCard: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E6E6E3', borderRadius: 10, padding: 14, marginBottom: 16 },
-  inviteLabel: { fontSize: 11, color: '#8C8C88', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  inviteLabel: { fontSize: 11, color: '#6B6B67', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
   inviteRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -220,7 +223,7 @@ const styles = StyleSheet.create({
   copyButton: { minHeight: 32, borderRadius: 6, backgroundColor: '#161B2E', paddingHorizontal: 10, justifyContent: 'center', marginLeft: 8 },
   copyButtonDone: { backgroundColor: '#0E6E64' },
   copyButtonLabel: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  pendingLabel: { fontSize: 11, fontWeight: '700', color: '#C9A15A', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  pendingLabel: { fontSize: 11, fontWeight: '700', color: '#7D6220', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
   pendingCard: { backgroundColor: '#FBF3E7', borderRadius: 10, paddingHorizontal: 14, marginBottom: 16 },
   pendingRow: {
     minHeight: 44,
@@ -240,7 +243,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rejectButtonLabel: { color: '#8C8C88', fontSize: 13, fontWeight: '700' },
+  rejectButtonLabel: { color: '#6B6B67', fontSize: 13, fontWeight: '700' },
   approveButton: {
     width: 30,
     height: 30,
@@ -271,5 +274,5 @@ const styles = StyleSheet.create({
   name: { flex: 1, fontSize: 13, color: '#161B2E' },
   badgeOwner: { backgroundColor: '#E8F3F1', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   badgeOwnerLabel: { fontSize: 9, fontWeight: '700', color: '#0E6E64' },
-  emptyText: { fontSize: 12, color: '#8C8C88', textAlign: 'center', paddingVertical: 16 },
+  emptyText: { fontSize: 12, color: '#6B6B67', textAlign: 'center', paddingVertical: 16 },
 });

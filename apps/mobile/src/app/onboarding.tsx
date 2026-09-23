@@ -204,12 +204,12 @@ const styles = StyleSheet.create({
   welcomeWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   welcomeEmoji: { fontSize: 40, marginBottom: 12 },
   welcomeTitle: { fontSize: 22, fontWeight: '700', color: '#161B2E', marginBottom: 10, textAlign: 'center' },
-  welcomeSubtitle: { fontSize: 13, color: '#8C8C88', textAlign: 'center', maxWidth: 280, lineHeight: 19, marginBottom: 28 },
+  welcomeSubtitle: { fontSize: 13, color: '#6B6B67', textAlign: 'center', maxWidth: 280, lineHeight: 19, marginBottom: 28 },
   skipLink: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  skipLabel: { fontSize: 12, fontWeight: '600', color: '#8C8C88' },
+  skipLabel: { fontSize: 12, fontWeight: '600', color: '#6B6B67' },
   stepTwo: { flex: 1 },
   title: { fontSize: 19, fontWeight: '700', color: '#161B2E', marginBottom: 6 },
-  subtitle: { fontSize: 12, color: '#8C8C88', marginBottom: 12, lineHeight: 18 },
+  subtitle: { fontSize: 12, color: '#6B6B67', marginBottom: 12, lineHeight: 18 },
   progressText: { fontSize: 12, fontWeight: '700', color: '#0E6E64', marginBottom: 10 },
   input: {
     minHeight: 44,
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   scrollContent: { paddingBottom: 12 },
-  emptyText: { fontSize: 12, color: '#8C8C88', textAlign: 'center', paddingVertical: 20 },
+  emptyText: { fontSize: 12, color: '#6B6B67', textAlign: 'center', paddingVertical: 20 },
   row: {
     minHeight: 48,
     flexDirection: 'row',
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   actionButtonLabel: { fontSize: 11, fontWeight: '700', color: '#161B2E' },
   actionButtonPrimary: { backgroundColor: '#161B2E' },
   actionButtonLabelPrimary: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  statusText: { fontSize: 11, color: '#8C8C88' },
+  statusText: { fontSize: 11, color: '#6B6B67' },
   buttonsRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
   flex1: { flex: 1 },
   primaryButton: {

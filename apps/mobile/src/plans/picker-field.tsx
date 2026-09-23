@@ -115,9 +115,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   value: { fontSize: 14, color: '#161B2E' },
-  placeholder: { fontSize: 14, color: '#8C8C88' },
+  placeholder: { fontSize: 14, color: '#6B6B67' },
   clearButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  clearLabel: { fontSize: 16, color: '#8C8C88', fontWeight: '600' },
+  clearLabel: { fontSize: 16, color: '#6B6B67', fontWeight: '600' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16 },
   confirmButton: {

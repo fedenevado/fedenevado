@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import type { Plan, Reminder } from '@/api/client';
-import { planTypeColor } from '@/plans/plan-types';
+import { planTypeColor, planTypeLabel } from '@/plans/plan-types';
 
 interface CalendarViewProps {
   plans: Plan[];
@@ -107,6 +107,7 @@ export function CalendarView({ plans, reminders, onSelectDay }: CalendarViewProp
             onPress={prevMonth}
             accessibilityRole="button"
             accessibilityLabel="Mes anterior"
+            hitSlop={2}
             style={styles.navButton}
           >
             <View style={styles.navCircle}>
@@ -117,6 +118,7 @@ export function CalendarView({ plans, reminders, onSelectDay }: CalendarViewProp
             onPress={nextMonth}
             accessibilityRole="button"
             accessibilityLabel="Mes siguiente"
+            hitSlop={2}
             style={styles.navButton}
           >
             <View style={styles.navCircle}>
@@ -131,6 +133,7 @@ export function CalendarView({ plans, reminders, onSelectDay }: CalendarViewProp
           onPress={goToday}
           accessibilityRole="button"
           accessibilityLabel="Ir al mes de hoy"
+          hitSlop={{ top: 6, bottom: 6 }}
           style={styles.todayLink}
         >
           <Text style={styles.todayLinkLabel}>Hoy</Text>
@@ -193,6 +196,15 @@ export function CalendarView({ plans, reminders, onSelectDay }: CalendarViewProp
                 ]}
               >
                 <Text style={[styles.cellDay, { color: textColor }]}>{day}</Text>
+                {firstEvent && !isMulti && !isPast && (
+                  // El color de fondo no es el único código del tipo de plan: se
+                  // acompaña de la inicial (Viaje/Comida/Evento/Plan casual), útil
+                  // para daltonismo/baja visión además del accessibilityLabel ya
+                  // existente para lector de pantalla.
+                  <Text style={[styles.cellTypeAbbr, { color: textColor }]}>
+                    {planTypeLabel(firstEvent.type).charAt(0).toUpperCase()}
+                  </Text>
+                )}
                 {isMulti && !isPast && (
                   <View style={styles.dotRow}>
                     {uniqueTypes.slice(0, 4).map((t) => (
@@ -238,7 +250,7 @@ const styles = StyleSheet.create({
   todayLink: { alignSelf: 'flex-end', minHeight: 32, justifyContent: 'center', marginBottom: 6 },
   todayLinkLabel: { fontSize: 11, color: '#161B2E', fontWeight: '700' },
   weekdayRow: { flexDirection: 'row', marginBottom: 4 },
-  weekdayLabel: { flexBasis: '14.28%', textAlign: 'center', fontSize: 9, fontWeight: '700', color: '#8C8C88' },
+  weekdayLabel: { flexBasis: '14.28%', textAlign: 'center', fontSize: 9, fontWeight: '700', color: '#6B6B67' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cellSlot: { flexBasis: '14.28%', padding: 2 },
   cell: {
@@ -253,6 +265,7 @@ const styles = StyleSheet.create({
   cellToday: { borderWidth: 2, borderColor: '#161B2E' },
   cellMultiBorder: { borderColor: '#C7C7C2' },
   cellDay: { fontSize: 12, fontWeight: '600' },
+  cellTypeAbbr: { fontSize: 8, fontWeight: '700', opacity: 0.9 },
   dotRow: { flexDirection: 'row', gap: 2 },
   typeDot: { width: 4, height: 4, borderRadius: 2 },
   reminderDot: { position: 'absolute', bottom: 4, width: 5, height: 5, borderRadius: 2.5 },

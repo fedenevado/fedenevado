@@ -216,6 +216,7 @@ export function DaySheet({
                             accessibilityRole="checkbox"
                             accessibilityLabel={`Marcar ${reminder.title} como ${reminder.done ? 'pendiente' : 'hecha'}`}
                             accessibilityState={{ checked: reminder.done }}
+                            hitSlop={11}
                             style={styles.checkbox}
                           >
                             {reminder.done && <Text style={styles.checkboxMark}>✓</Text>}
@@ -328,6 +329,7 @@ export function DaySheet({
                       accessibilityRole="checkbox"
                       accessibilityLabel={`Elemento ${item.text}, marcar como ${item.done ? 'pendiente' : 'hecho'}`}
                       accessibilityState={{ checked: item.done }}
+                      hitSlop={13}
                       style={styles.itemCheckbox}
                     >
                       {item.done && <Text style={styles.checkboxMark}>✓</Text>}
@@ -337,6 +339,7 @@ export function DaySheet({
                       onPress={() => onDeleteReminderItem(editingId!, item.id)}
                       accessibilityRole="button"
                       accessibilityLabel={`Borrar elemento ${item.text}`}
+                      hitSlop={6}
                       style={styles.itemDelete}
                     >
                       <Text style={styles.itemDeleteLabel}>✕</Text>
@@ -352,6 +355,7 @@ export function DaySheet({
                         onPress={() => setDraftItems((prev) => prev.filter((_, idx) => idx !== i))}
                         accessibilityRole="button"
                         accessibilityLabel={`Quitar elemento ${text}`}
+                        hitSlop={6}
                         style={styles.itemDelete}
                       >
                         <Text style={styles.itemDeleteLabel}>✕</Text>
@@ -461,19 +465,19 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 16, fontWeight: '700', color: '#161B2E', textTransform: 'capitalize', flexShrink: 1 },
   closeButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  closeLabel: { fontSize: 16, color: '#8C8C88' },
+  closeLabel: { fontSize: 16, color: '#6B6B67' },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 24 },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   sectionLabel: {
     fontSize: 11,
-    color: '#8C8C88',
+    color: '#6B6B67',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginTop: 14,
     marginBottom: 8,
   },
-  label: { fontSize: 11, color: '#8C8C88', textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
-  emptyText: { fontSize: 12, color: '#8C8C88', textAlign: 'center', paddingVertical: 12 },
+  label: { fontSize: 11, color: '#6B6B67', textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
+  emptyText: { fontSize: 12, color: '#6B6B67', textAlign: 'center', paddingVertical: 12 },
   planRow: {
     minHeight: 44,
     flexDirection: 'row',
@@ -485,7 +489,7 @@ const styles = StyleSheet.create({
   },
   typeDot: { width: 8, height: 8, borderRadius: 4 },
   planTitle: { flex: 1, fontSize: 13, color: '#161B2E' },
-  planType: { fontSize: 10, color: '#8C8C88', fontWeight: '700' },
+  planType: { fontSize: 10, color: '#6B6B67', fontWeight: '700' },
   reminderRow: {
     minHeight: 44,
     flexDirection: 'row',
@@ -508,9 +512,9 @@ const styles = StyleSheet.create({
   checkboxMark: { color: '#161B2E', fontSize: 12, fontWeight: '700' },
   reminderInfo: { flex: 1, minHeight: 44, justifyContent: 'center' },
   reminderTitle: { fontSize: 13, fontWeight: '600', color: '#161B2E' },
-  reminderTitleDone: { textDecorationLine: 'line-through', color: '#8C8C88' },
-  reminderMeta: { fontSize: 10, color: '#8C8C88' },
-  reminderTime: { fontSize: 11, color: '#8C8C88' },
+  reminderTitleDone: { textDecorationLine: 'line-through', color: '#6B6B67' },
+  reminderMeta: { fontSize: 10, color: '#6B6B67' },
+  reminderTime: { fontSize: 11, color: '#6B6B67' },
   quickAddRow: { flexDirection: 'row', gap: 8, marginTop: 16 },
   input: {
     minHeight: 44,
@@ -551,7 +555,7 @@ const styles = StyleSheet.create({
   },
   itemText: { flex: 1, fontSize: 13, color: '#161B2E' },
   itemDelete: { minWidth: 32, minHeight: 32, alignItems: 'center', justifyContent: 'center' },
-  itemDeleteLabel: { fontSize: 12, color: '#8C8C88' },
+  itemDeleteLabel: { fontSize: 12, color: '#6B6B67' },
   addItemRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   addItemButton: {
     minHeight: 44,
@@ -609,5 +613,5 @@ const styles = StyleSheet.create({
   },
   confirmDialog: { backgroundColor: '#fff', borderRadius: 12, padding: 18, width: '100%' },
   confirmTitle: { fontSize: 15, fontWeight: '700', color: '#161B2E', marginBottom: 4 },
-  confirmSubtitle: { fontSize: 12, color: '#8C8C88' },
+  confirmSubtitle: { fontSize: 12, color: '#6B6B67' },
 });

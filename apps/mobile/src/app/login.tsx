@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   tabActive: { backgroundColor: '#161B2E' },
   tabLabel: { fontSize: 13, fontWeight: '600', color: '#161B2E' },
-  tabLabelActive: { color: '#fff' },
+  tabLabelActive: { color: '#fff', fontWeight: '800', textDecorationLine: 'underline' },
   input: {
     minHeight: 44,
     borderWidth: 1,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 4,
   },
-  usernamePrefix: { fontSize: 15, color: '#8C8C88', fontWeight: '600' },
+  usernamePrefix: { fontSize: 15, color: '#6B6B67', fontWeight: '600' },
   usernameInput: { flex: 1, minHeight: 44, fontSize: 15 },
   forgotPasswordLink: { minHeight: 44, justifyContent: 'center', alignItems: 'flex-end', marginBottom: 4 },
   forgotPasswordLabel: { fontSize: 13, color: '#161B2E', fontWeight: '600' },

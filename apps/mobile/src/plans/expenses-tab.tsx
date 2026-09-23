@@ -168,7 +168,7 @@ export function ExpensesTab({ token, planId, myUserId, confirmedParticipants }: 
 
       <View style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Tu balance</Text>
-        <Text style={[styles.balanceAmount, { color: balances.myNet >= 0 ? '#0E6E64' : '#FF5A3C' }]}>
+        <Text style={[styles.balanceAmount, { color: balances.myNet >= 0 ? '#0E6E64' : '#C2410C' }]}>
           {balances.myNet >= 0 ? `+${balances.myNet.toFixed(2)}€` : `${balances.myNet.toFixed(2)}€`}
         </Text>
         <Text style={styles.balanceHint}>{balances.myNet >= 0 ? 'Te deben en total' : 'Debes en total'}</Text>
@@ -431,9 +431,9 @@ const styles = StyleSheet.create({
   loading: { marginTop: 24 },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   balanceCard: { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 14 },
-  balanceLabel: { fontSize: 11, color: '#8C8C88', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
+  balanceLabel: { fontSize: 11, color: '#6B6B67', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
   balanceAmount: { fontSize: 20, fontWeight: '700' },
-  balanceHint: { fontSize: 11, color: '#8C8C88' },
+  balanceHint: { fontSize: 11, color: '#6B6B67' },
   settledCard: { backgroundColor: '#161B2E', borderRadius: 10, padding: 14, marginBottom: 14 },
   settledHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   settledTitle: { fontSize: 11, color: '#fff', textTransform: 'uppercase', letterSpacing: 1, flexShrink: 1 },
@@ -474,13 +474,13 @@ const styles = StyleSheet.create({
   payButtonLabel: { color: '#fff', fontSize: 10, fontWeight: '700' },
   sectionLabel: {
     fontSize: 11,
-    color: '#8C8C88',
+    color: '#6B6B67',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginTop: 16,
     marginBottom: 8,
   },
-  emptyText: { fontSize: 12, color: '#8C8C88', paddingVertical: 14 },
+  emptyText: { fontSize: 12, color: '#6B6B67', paddingVertical: 14 },
   expenseList: { backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, marginBottom: 14 },
   expenseRow: {
     minHeight: 56,
@@ -493,14 +493,14 @@ const styles = StyleSheet.create({
   },
   expenseInfo: { flexShrink: 1, paddingRight: 8 },
   expenseDesc: { fontSize: 13, fontWeight: '600', color: '#161B2E' },
-  expenseMeta: { fontSize: 11, color: '#8C8C88', marginTop: 2 },
-  expenseMetaWarn: { color: '#FF5A3C', fontWeight: '700' },
+  expenseMeta: { fontSize: 11, color: '#6B6B67', marginTop: 2 },
+  expenseMetaWarn: { color: '#C2410C', fontWeight: '700' },
   expenseActions: { alignItems: 'flex-end', gap: 4 },
   expenseAmount: { fontSize: 13, fontWeight: '700', color: '#161B2E' },
   expenseIcons: { flexDirection: 'row', gap: 10 },
   iconButton: { minHeight: 44, minWidth: 44, justifyContent: 'center' },
-  iconButtonLabel: { fontSize: 11, fontWeight: '700', color: '#8C8C88' },
-  iconButtonDanger: { color: '#FF5A3C' },
+  iconButtonLabel: { fontSize: 11, fontWeight: '700', color: '#6B6B67' },
+  iconButtonDanger: { color: '#C2410C' },
   formCard: { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 14 },
   input: {
     minHeight: 44,
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', gap: 8 },
   flex1: { flex: 1 },
-  label: { fontSize: 11, color: '#8C8C88', textTransform: 'uppercase', marginTop: 8, marginBottom: 6 },
+  label: { fontSize: 11, color: '#6B6B67', textTransform: 'uppercase', marginTop: 8, marginBottom: 6 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
   chip: {
     minHeight: 44,
@@ -543,8 +543,8 @@ const styles = StyleSheet.create({
   splitRowActive: { borderColor: '#161B2E', borderWidth: 2, backgroundColor: '#FAFAF8' },
   splitName: { fontSize: 12, color: '#161B2E' },
   splitCheck: { fontSize: 14, color: '#161B2E', fontWeight: '700' },
-  warnText: { fontSize: 11, color: '#FF5A3C' },
-  perPersonText: { fontSize: 11, color: '#8C8C88', marginTop: 4 },
+  warnText: { fontSize: 11, color: '#C2410C' },
+  perPersonText: { fontSize: 11, color: '#6B6B67', marginTop: 4 },
   primaryButton: {
     minHeight: 44,
     borderRadius: 8,
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: 8,
-    backgroundColor: '#FF5A3C',
+    backgroundColor: '#C2410C',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
@@ -598,6 +598,6 @@ const styles = StyleSheet.create({
   },
   dialog: { backgroundColor: '#fff', borderRadius: 14, padding: 20, width: '100%', maxWidth: 320 },
   dialogTitle: { fontSize: 15, fontWeight: '700', color: '#161B2E', marginBottom: 6 },
-  dialogSubtitle: { fontSize: 12, color: '#8C8C88', marginBottom: 16 },
+  dialogSubtitle: { fontSize: 12, color: '#6B6B67', marginBottom: 16 },
   dialogButtons: { flexDirection: 'row', gap: 8 },
 });

@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   loading: { marginTop: 24 },
   scrollContent: { paddingBottom: 40 },
-  label: { fontSize: 11, color: '#8C8C88', textTransform: 'uppercase', marginBottom: 6, marginTop: 12 },
+  label: { fontSize: 11, color: '#6B6B67', textTransform: 'uppercase', marginBottom: 6, marginTop: 12 },
   input: {
     minHeight: 44,
     borderWidth: 1,
@@ -396,8 +396,8 @@ const styles = StyleSheet.create({
   },
   chipLabel: { fontSize: 12, fontWeight: '600', color: '#161B2E' },
   chipActive: { backgroundColor: '#161B2E', borderColor: '#161B2E' },
-  chipLabelActive: { color: '#fff' },
-  hint: { fontSize: 11, color: '#8C8C88', marginBottom: 16 },
+  chipLabelActive: { color: '#fff', fontWeight: '800', textDecorationLine: 'underline' },
+  hint: { fontSize: 11, color: '#6B6B67', marginBottom: 16 },
   row: { flexDirection: 'row', gap: 8, marginTop: 20 },
   flex1: { flex: 1 },
   primaryButton: {
@@ -421,8 +421,8 @@ const styles = StyleSheet.create({
   },
   secondaryButtonLabel: { color: '#161B2E', fontSize: 14, fontWeight: '700' },
   buttonDisabled: { opacity: 0.5 },
-  invitedCount: { fontSize: 11, color: '#8C8C88', marginBottom: 6 },
-  emptyText: { fontSize: 12, color: '#8C8C88', textAlign: 'center', paddingVertical: 16 },
+  invitedCount: { fontSize: 11, color: '#6B6B67', marginBottom: 6 },
+  emptyText: { fontSize: 12, color: '#6B6B67', textAlign: 'center', paddingVertical: 16 },
   friendRow: {
     minHeight: 48,
     flexDirection: 'row',

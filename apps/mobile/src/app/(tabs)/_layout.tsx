@@ -60,14 +60,22 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: 'Inicio',
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <Home size={size} color={color} fill={focused ? color : 'none'} />,
+          tabBarLabel: ({ focused, color, children }) => (
+            <Text style={[styles.tabBarLabel, { color }, focused && styles.tabBarLabelActive]}>{children}</Text>
+          ),
         }}
       />
       <Tabs.Screen
         name="plans"
         options={{
           title: 'Planes',
-          tabBarIcon: ({ color, size }) => <ListChecks size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => (
+            <ListChecks size={size} color={color} fill={focused ? color : 'none'} />
+          ),
+          tabBarLabel: ({ focused, color, children }) => (
+            <Text style={[styles.tabBarLabel, { color }, focused && styles.tabBarLabelActive]}>{children}</Text>
+          ),
         }}
       />
       <Tabs.Screen
@@ -97,7 +105,8 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   tabBar: { height: 64, paddingBottom: 8, paddingTop: 6 },
   tabBarLabel: { fontSize: 9, fontWeight: '600' },
-  tabBarBadge: { backgroundColor: '#FF5A3C', color: '#fff', fontSize: 9, fontWeight: '700' },
+  tabBarLabelActive: { fontWeight: '800' },
+  tabBarBadge: { backgroundColor: '#C2410C', color: '#fff', fontSize: 9, fontWeight: '700' },
   plusWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   plusButton: {
     width: 50,

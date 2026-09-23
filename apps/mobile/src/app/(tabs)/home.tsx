@@ -343,6 +343,7 @@ function ReminderRow({
         accessibilityRole="checkbox"
         accessibilityLabel={`Marcar ${reminder.title} como ${reminder.done ? 'pendiente' : 'hecha'}`}
         accessibilityState={{ checked: reminder.done }}
+        hitSlop={12}
         style={styles.checkbox}
       >
         {reminder.done && <Text style={styles.checkboxMark}>✓</Text>}
@@ -370,9 +371,9 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 40 },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
-  greeting: { fontSize: 13, color: '#8C8C88', marginBottom: 8 },
+  greeting: { fontSize: 13, color: '#6B6B67', marginBottom: 8 },
   emptyTitle: { fontSize: 19, fontWeight: '700', color: '#161B2E', marginBottom: 6, textAlign: 'center' },
-  emptySubtitle: { fontSize: 12, color: '#8C8C88', textAlign: 'center', marginBottom: 20, maxWidth: 260 },
+  emptySubtitle: { fontSize: 12, color: '#6B6B67', textAlign: 'center', marginBottom: 20, maxWidth: 260 },
   primaryButton: {
     minHeight: 48,
     paddingHorizontal: 20,
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
   primaryButtonLabel: { color: '#fff', fontSize: 13, fontWeight: '700' },
   sectionLabel: {
     fontSize: 11,
-    color: '#8C8C88',
+    color: '#6B6B67',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginTop: 18,
@@ -402,7 +403,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#FAFAF8',
   },
   planTitle: { fontSize: 13, fontWeight: '600', color: '#161B2E', flexShrink: 1, paddingRight: 8 },
-  planMeta: { fontSize: 11, color: '#8C8C88' },
+  planMeta: { fontSize: 11, color: '#6B6B67' },
   reminderRow: {
     minHeight: 44,
     flexDirection: 'row',
@@ -425,8 +426,8 @@ const styles = StyleSheet.create({
   checkboxMark: { color: '#161B2E', fontSize: 12, fontWeight: '700' },
   reminderInfo: { flex: 1, minHeight: 44, justifyContent: 'center' },
   reminderTitle: { fontSize: 12, fontWeight: '600', color: '#161B2E' },
-  reminderTitleDone: { textDecorationLine: 'line-through', color: '#8C8C88' },
-  reminderMeta: { fontSize: 10, color: '#8C8C88' },
+  reminderTitleDone: { textDecorationLine: 'line-through', color: '#6B6B67' },
+  reminderMeta: { fontSize: 10, color: '#6B6B67' },
   quickAddRow: { flexDirection: 'row', gap: 8, paddingBottom: 14 },
   primaryButtonSmall: {
     flex: 1,

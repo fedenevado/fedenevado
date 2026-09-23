@@ -591,6 +591,113 @@ muestre en vivo al editarlo, y que el buscador de Amigos muestre el
 VoiceOver/TalkBack de este campo nuevo tampoco confirmado — se suma a la
 deuda de accesibilidad de más abajo.
 
+### Paso H — Repaso completo de accesibilidad WCAG 2.1 AA, todas las pantallas (pedido explícito del usuario, 2026-09-23)
+
+Cierra la sesión dedicada que se venía aplazando desde el inicio de v1.0.
+Auditoría previa (solo lectura, sin tocar código) de los 21
+archivos/pantallas mobile — incluyendo explícitamente `notifications.tsx`,
+`onboarding.tsx` y `(tabs)/_layout.tsx`, que se habían quedado fuera del
+tracking anterior — contra 5 criterios: `accessibilityLabel`, área táctil
+≥44×44pt, contraste 4.5:1, color nunca como único indicador, y
+`accessibilityLiveRegion="polite"` donde aplica. 97 hallazgos, agrupados en
+6 causas raíz para corregir de una vez por causa en vez de archivo a
+archivo (a petición del usuario), verificando `tsc`/`expo export` tras
+cada una, no todo junto.
+
+**Causa A — gris `#8C8C88` insuficiente (≈3.09–3.38:1 según fondo).**
+Sustituido por `#6B6B67` (ya validado y en uso desde el Paso E'' en
+`invite/[token].tsx`) en las 19 pantallas afectadas, 84 ocurrencias — labels
+de sección, metadatos, hints, placeholders, timestamps.
+
+**Causas B y C — naranja `#FF5A3C` (≈3.10:1) y dorado `#C9A15A` (≈2.41:1)
+insuficientes como texto o como fondo con texto blanco encima.** Un
+`accessibilityLabel`/icono no sustituye un contraste de texto insuficiente
+(son criterios WCAG distintos — 1.4.3 contraste vs. 1.4.1 uso del color),
+así que se optó por tonos más oscuros dentro de la misma familia de color
+en vez de acompañar con negrita+icono: `#C2410C` (naranja) y `#7D6220`
+(dorado), ambos ≥4.74:1 en todos los fondos donde se usan. Corregido en el
+origen, `plans/plan-types.ts` (tipos "evento" y "comida"), propagado
+automáticamente a las 6 pantallas que usan `planTypeColor()`/
+`PLAN_TYPE_OPTIONS`. Además, 13 usos independientes (no venían de
+`plan-types.ts`): botones "Eliminar" y de confirmación de borrado, "Cerrar
+sesión", "Quitar filtros", avisos de gasto sin repartir del todo, balance
+negativo, `pendingLabel` de solicitudes. **2 hallazgos que la auditoría
+automática no detectó, encontrados al revisar el código directamente antes
+de aplicar el cambio**: el botón "Enviar" del chat (`chat-tab.tsx`,
+`sendButtonLabel` blanco sobre `#FF5A3C`) y el badge de contador de la
+barra de pestañas (`(tabs)/_layout.tsx`, `tabBarBadge`) — mismo patrón,
+corregidos igual. Se dejaron sin tocar, a propósito, los usos puramente
+decorativos sin texto encima (botón "+" flotante, punto de no-leído,
+icono de recordatorio RSVP, relleno del `stepBar`) — no están obligados a
+4.5:1 (umbral de objeto gráfico es 3:1, y ya lo cumplen) y tocarlos habría
+diluido la identidad de marca sin necesidad.
+
+**Causa D — tabs/chips "activo" señalados solo con relleno de color.**
+`login.tsx`, `friends.tsx`, `plan/[id].tsx` y `plan-form.tsx`: el texto
+activo pasa a `fontWeight: '800'` + subrayado. `(tabs)/_layout.tsx`
+(pestañas Inicio/Planes, únicas sin segundo indicador ya que Amigos ya
+tenía el relleno del corazón y Perfil el borde del avatar): iconos
+`Home`/`ListChecks` ganan `fill` cuando están activos (mismo patrón que
+ya usaba Amigos) + label en negrita vía `tabBarLabel` custom.
+
+**Causa E — 13 elementos interactivos por debajo de 44×44pt sin
+compensar.** `hitSlop` añadido a cada uno, calculado para llegar a 44pt
+efectivos: checkbox de `home.tsx` (20×20, +12), `rsvpBadge`/`avatarStack`
+de `plan/[id].tsx` (32pt alto, +6 vertical), `navButton`×2/`todayLink` de
+`calendar-view.tsx` (40pt +2 / 32pt +6 vertical), `checkbox`/`itemCheckbox`/
+`itemDelete`×2 de `day-sheet.tsx` (22px +11 / 18px +13 / 32px +6),
+`copyButton`/`rejectButton`/`approveButton` de `guest-list-sheet.tsx`
+(32pt +6 vertical / 30×30 +7). `hitSlop` pasó de usarse en 2 sitios de
+todo el proyecto a 15.
+
+**Los 4 `accessibilityLiveRegion="polite"` faltantes**: los 2 mensajes de
+error de `invite/[token].tsx` (vista previa sin sesión y error ya
+autenticado) y los 2 de `plan/[id].tsx` (carga del plan, gate de RSVP) —
+mismo patrón ya usado en 15+ pantallas del proyecto, aquí no se había
+aplicado.
+
+**Hallazgo estructural — color como único código visual en el calendario
+mensual.** `calendar-view.tsx`: cuando un día tiene un único tipo de plan,
+toda la celda usa `planTypeColor()` de fondo sin ningún otro código visual
+(a diferencia de los días con varios tipos, que sí muestran puntos por
+tipo). Añadida la inicial del tipo (V/C/E/P) como texto pequeño junto al
+número del día — el `accessibilityLabel` de la celda ya incluía el plan
+por nombre, esto cierra el hueco solo para el canal visual
+(daltonismo/baja visión).
+
+Evidencia real de contraste (fórmula de luminancia relativa WCAG, no
+estimación):
+```
+$ python3 contrast_final.py
+Par                                                        Ratio  >=4.5:1
+Gris texto (causa A) #6B6B67 vs blanco                    5.352:1  PASA
+Gris texto (causa A) #6B6B67 vs #F5F5F2                   4.899:1  PASA
+Gris texto (causa A) #6B6B67 vs #F0F0EE                   4.690:1  PASA
+Naranja accesible #C2410C vs blanco                       5.178:1  PASA
+Naranja accesible #C2410C vs #F5F5F2                      4.741:1  PASA
+Naranja accesible, blanco encima (botón)                  5.178:1  PASA
+Dorado accesible #7D6220 vs blanco                        5.769:1  PASA
+Dorado accesible #7D6220 vs #F5F5F2                       5.282:1  PASA
+Dorado accesible #7D6220 vs #FBF3E7 (pendingLabel)        5.241:1  PASA
+Dorado accesible, blanco encima (celda calendario)        5.769:1  PASA
+```
+Verificado además que no queda ningún resto de `#8C8C88`/`#C9A15A` fuera
+de un comentario explicativo (`grep` sobre los 21 archivos).
+
+```
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json   (× 6, una vez por causa)
+(sin salida — sin errores de tipos, las 6 veces)
+
+$ npx expo export --platform android   (× 6, una vez por causa)
+Exported: dist   (sin errores, las 6 veces)
+```
+
+**No verificado todavía (requiere tu dispositivo)**: prueba visual en
+Expo Go de las 20 pantallas tocadas, y el propio checklist de VoiceOver/
+TalkBack — el motivo de esta sesión era justamente cerrar esa deuda, así
+que no se marca como resuelta sin tu confirmación explícita en
+dispositivo real, mismo criterio que el resto del proyecto.
+
 ### Paso extra — Barra de navegación inferior fija (pedido explícito del usuario, 2026-09-15)
 
 El usuario pidió sustituir la fila de botones de texto (Planes/Amigos/
@@ -1640,6 +1747,15 @@ Ver `docs/roadmap.md` — v0.3 es "Planes" (CRUD, RSVP, públicos/privados,
 aprobación de solicitudes, invitado sin cuenta vía enlace).
 
 ## Deuda de accesibilidad arrastrada (no marcar como resuelta sin confirmación del usuario)
+
+**Actualización 2026-09-23 (Paso H de v1.0):** los 5 criterios de código
+(`accessibilityLabel`, contraste 4.5:1, área táctil 44×44pt, color no como
+único indicador, `accessibilityLiveRegion`) ya se auditaron y corrigieron
+en **todas** las pantallas listadas aquí — no siguen siendo huecos de
+código sin tocar. Lo que queda pendiente en cada línea de abajo es
+exclusivamente la confirmación con VoiceOver/TalkBack en dispositivo real,
+que es justo lo que este checklist controla; no se marcan como `[x]`
+hasta que esa confirmación llegue explícitamente.
 
 - [ ] VoiceOver/TalkBack sobre login/registro (v0.1) — sigue pendiente,
       nunca se confirmó explícitamente pese al cierre de v0.1.
