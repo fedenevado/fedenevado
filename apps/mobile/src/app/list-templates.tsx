@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
+import { Trash2 } from 'lucide-react-native';
 import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type ListTemplate } from '@/api/client';
 
@@ -174,6 +175,7 @@ export default function ListTemplatesScreen() {
                     accessibilityLabel={`Eliminar plantilla ${t.title}`}
                     style={styles.iconButton}
                   >
+                    <Trash2 size={13} color="#F9452A" />
                     <Text style={[styles.iconButtonLabel, styles.iconButtonDanger]}>Eliminar</Text>
                   </Pressable>
                 </View>
@@ -313,9 +315,17 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 13, fontWeight: '600', color: '#2D1E1B' },
   cardMeta: { fontSize: 10, color: '#6B6B67', marginTop: 2 },
   cardActions: { flexDirection: 'row', paddingHorizontal: 10, paddingBottom: 6, gap: 4 },
-  iconButton: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  iconButton: {
+    minHeight: 44,
+    minWidth: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+  },
   iconButtonLabel: { fontSize: 11, fontWeight: '700', color: '#6B6B67' },
-  iconButtonDanger: { color: '#C2410C' },
+  iconButtonDanger: { color: '#F9452A' },
   cardItems: { paddingHorizontal: 14, paddingBottom: 12 },
   cardItemText: { fontSize: 12, color: '#5A5A56', paddingVertical: 3 },
   formCard: { backgroundColor: '#fff', borderRadius: 10, padding: 14 },
@@ -376,11 +386,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: 8,
-    backgroundColor: '#C2410C',
+    backgroundColor: '#F9452A',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dangerButtonLabel: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  dangerButtonLabel: { color: '#2D1E1B', fontSize: 13, fontWeight: '700' },
   newTemplateButton: {
     minHeight: 44,
     borderRadius: 8,

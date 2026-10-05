@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AlertCircle, Trash2 } from 'lucide-react-native';
 import { api, ApiError, type BalancesResult, type Expense, type PlanParticipant, type SettlementTransfer } from '@/api/client';
 
 interface Props {
@@ -168,7 +169,7 @@ export function ExpensesTab({ token, planId, myUserId, confirmedParticipants }: 
 
       <View style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Tu balance</Text>
-        <Text style={[styles.balanceAmount, { color: balances.myNet >= 0 ? '#0E6E64' : '#C2410C' }]}>
+        <Text style={[styles.balanceAmount, { color: balances.myNet >= 0 ? '#0E6E64' : '#F9452A' }]}>
           {balances.myNet >= 0 ? `+${balances.myNet.toFixed(2)}€` : `${balances.myNet.toFixed(2)}€`}
         </Text>
         <Text style={styles.balanceHint}>{balances.myNet >= 0 ? 'Te deben en total' : 'Debes en total'}</Text>
@@ -256,6 +257,7 @@ export function ExpensesTab({ token, planId, myUserId, confirmedParticipants }: 
                     accessibilityLabel={`Eliminar gasto ${e.description}`}
                     style={styles.iconButton}
                   >
+                    <Trash2 size={13} color="#F9452A" />
                     <Text style={[styles.iconButtonLabel, styles.iconButtonDanger]}>Eliminar</Text>
                   </Pressable>
                 </View>
@@ -320,7 +322,12 @@ export function ExpensesTab({ token, planId, myUserId, confirmedParticipants }: 
               </Pressable>
             );
           })}
-          {splitWith.length === 0 && <Text style={styles.warnText}>Selecciona al menos una persona.</Text>}
+          {splitWith.length === 0 && (
+            <View style={styles.warnRow}>
+              <AlertCircle size={13} color="#F9452A" />
+              <Text style={styles.warnText}>Selecciona al menos una persona.</Text>
+            </View>
+          )}
           {amountValue > 0 && splitWith.length > 0 && (
             <Text style={styles.perPersonText}>{(amountValue / splitWith.length).toFixed(2)}€ por persona</Text>
           )}
@@ -494,13 +501,20 @@ const styles = StyleSheet.create({
   expenseInfo: { flexShrink: 1, paddingRight: 8 },
   expenseDesc: { fontSize: 13, fontWeight: '600', color: '#2D1E1B' },
   expenseMeta: { fontSize: 11, color: '#6B6B67', marginTop: 2 },
-  expenseMetaWarn: { color: '#C2410C', fontWeight: '700' },
+  expenseMetaWarn: { color: '#F9452A', fontWeight: '700' },
   expenseActions: { alignItems: 'flex-end', gap: 4 },
   expenseAmount: { fontSize: 13, fontWeight: '700', color: '#2D1E1B' },
   expenseIcons: { flexDirection: 'row', gap: 10 },
-  iconButton: { minHeight: 44, minWidth: 44, justifyContent: 'center' },
+  iconButton: {
+    minHeight: 44,
+    minWidth: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
   iconButtonLabel: { fontSize: 11, fontWeight: '700', color: '#6B6B67' },
-  iconButtonDanger: { color: '#C2410C' },
+  iconButtonDanger: { color: '#F9452A' },
   formCard: { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 14 },
   input: {
     minHeight: 44,
@@ -543,7 +557,8 @@ const styles = StyleSheet.create({
   splitRowActive: { borderColor: '#2D1E1B', borderWidth: 2, backgroundColor: '#FAFAF8' },
   splitName: { fontSize: 12, color: '#2D1E1B' },
   splitCheck: { fontSize: 14, color: '#2D1E1B', fontWeight: '700' },
-  warnText: { fontSize: 11, color: '#C2410C' },
+  warnRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  warnText: { fontSize: 11, color: '#F9452A' },
   perPersonText: { fontSize: 11, color: '#6B6B67', marginTop: 4 },
   primaryButton: {
     minHeight: 44,
@@ -570,12 +585,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: 8,
-    backgroundColor: '#C2410C',
+    backgroundColor: '#F9452A',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
   },
-  dangerButtonLabel: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  dangerButtonLabel: { color: '#2D1E1B', fontSize: 13, fontWeight: '700' },
   buttonDisabled: { opacity: 0.5 },
   closeButton: {
     minHeight: 48,

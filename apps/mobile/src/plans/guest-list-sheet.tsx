@@ -134,7 +134,10 @@ export function GuestListSheet({ token, plan, isOwner, onClose, onParticipantsCh
 
             {isOwner && plan.visibility === 'privada' && joinRequests.length > 0 && (
               <>
-                <Text style={styles.pendingLabel}>Solicitudes pendientes ({joinRequests.length})</Text>
+                <View style={styles.pendingLabelRow}>
+                  <View style={styles.pendingAccentDot} />
+                  <Text style={styles.pendingLabel}>Solicitudes pendientes ({joinRequests.length})</Text>
+                </View>
                 <View style={styles.pendingCard}>
                   {joinRequests.map((r) => (
                     <View key={r.id} style={styles.pendingRow}>
@@ -223,7 +226,13 @@ const styles = StyleSheet.create({
   copyButton: { minHeight: 32, borderRadius: 6, backgroundColor: '#2D1E1B', paddingHorizontal: 10, justifyContent: 'center', marginLeft: 8 },
   copyButtonDone: { backgroundColor: '#0E6E64' },
   copyButtonLabel: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  pendingLabel: { fontSize: 11, fontWeight: '700', color: '#7D6220', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  pendingLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 6 },
+  // El texto pasa a #2D1E1B (plano, igual que el resto de labels) porque el
+  // dorado corporativo es casi invisible como texto (1.5-1.7:1); el dorado
+  // se conserva como acento en este punto, con borde para que se distinga
+  // del fondo claro por sí mismo.
+  pendingAccentDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#F7C117', borderWidth: 1, borderColor: '#2D1E1B' },
+  pendingLabel: { fontSize: 11, fontWeight: '700', color: '#2D1E1B', textTransform: 'uppercase', letterSpacing: 0.5 },
   pendingCard: { backgroundColor: '#FBF3E7', borderRadius: 10, paddingHorizontal: 14, marginBottom: 16 },
   pendingRow: {
     minHeight: 44,

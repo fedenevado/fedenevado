@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type InvitationPreview } from '@/api/client';
-import { formatPlanDate, planTypeColor, planTypeLabel } from '@/plans/plan-types';
+import { formatPlanDate, planTypeColor, planTypeLabel, planTypeTextColor } from '@/plans/plan-types';
 import { loginWithInviteHref } from '@/invite/invite-token';
 
 type Status = 'loading' | 'joined' | 'pending' | 'error';
@@ -100,6 +100,14 @@ export default function InvitationScreen() {
       );
     }
 
+    const headerTextColor = planTypeTextColor(preview.type);
+    // El coral/dorado corporativos no dejan margen para texto translúcido
+    // (incluso al 98% de opacidad el texto oscuro cae por debajo de 4.5:1
+    // sobre coral) — cuando el texto del tipo es oscuro, todo el texto de
+    // la cabecera va a color plano #2D1E1B, sin variantes atenuadas.
+    const headerIsDark = headerTextColor !== '#fff';
+    const headerSecondaryColor = headerIsDark ? '#2D1E1B' : 'rgba(255,255,255,0.85)';
+
     return (
       <View style={styles.guestFlex}>
         <ScrollView contentContainerStyle={styles.guestScroll}>
@@ -108,19 +116,21 @@ export default function InvitationScreen() {
               onPress={() => router.push(loginWithInviteHref(invitationToken, 'login'))}
               accessibilityRole="button"
               accessibilityLabel="Iniciar sesión para unirme a este plan"
-              style={styles.loginPill}
+              style={[styles.loginPill, headerIsDark && styles.loginPillDark]}
             >
               <Text style={styles.loginPillLabel}>Iniciar sesión</Text>
             </Pressable>
-            <Text style={styles.guestType}>{planTypeLabel(preview.type)}</Text>
-            <Text style={styles.guestTitle} numberOfLines={2}>
+            <Text style={[styles.guestType, { color: headerSecondaryColor }]}>{planTypeLabel(preview.type)}</Text>
+            <Text style={[styles.guestTitle, { color: headerTextColor }]} numberOfLines={2}>
               {preview.title}
             </Text>
-            <Text style={styles.guestSubtitle}>
+            <Text style={[styles.guestSubtitle, { color: headerSecondaryColor }]}>
               {preview.location ? `${preview.location} · ` : ''}
               {formatPlanDate(preview.startDate, preview.endDate, preview.time)}
             </Text>
-            <Text style={styles.guestOrganizer}>Organiza {preview.organizerName}</Text>
+            <Text style={[styles.guestOrganizer, { color: headerSecondaryColor }]}>
+              Organiza {preview.organizerName}
+            </Text>
           </View>
 
           <View style={styles.guestBody}>
@@ -252,11 +262,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 14,
   },
+  // Sobre coral/dorado (texto oscuro) el fondo translúcido blanco no oscurece
+  // lo suficiente para que el texto claro cumpla 4.5:1 — se usa un botón
+  // sólido en vez de la píldora "fantasma" translúcida.
+  loginPillDark: { backgroundColor: '#2D1E1B', borderColor: '#2D1E1B' },
   loginPillLabel: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  guestType: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, color: 'rgba(255,255,255,0.85)', marginBottom: 4 },
-  guestTitle: { fontSize: 22, fontWeight: '700', color: '#fff' },
-  guestSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 6 },
-  guestOrganizer: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  guestType: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  guestTitle: { fontSize: 22, fontWeight: '700' },
+  guestSubtitle: { fontSize: 12, marginTop: 6 },
+  guestOrganizer: { fontSize: 12, marginTop: 2 },
   guestBody: { flex: 1, padding: 20 },
   sectionLabel: { fontSize: 11, fontWeight: '700', color: '#6B6B67', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
   sectionLabelSm: { fontSize: 11, fontWeight: '700', color: '#6B6B67', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },

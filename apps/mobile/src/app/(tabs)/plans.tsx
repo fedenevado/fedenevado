@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, useFocusEffect, useRouter, type Href } from 'expo-router';
+import { X } from 'lucide-react-native';
 import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type Plan, type PlanType } from '@/api/client';
 import {
@@ -181,7 +182,11 @@ export default function PlansScreen() {
                   accessibilityState={{ checked: active }}
                   style={[styles.chip, active && { backgroundColor: t.color, borderColor: t.color }]}
                 >
-                  <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{t.label}</Text>
+                  <Text
+                    style={[styles.chipLabel, active && styles.chipLabelActive, active && { color: t.textColor }]}
+                  >
+                    {t.label}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -219,6 +224,7 @@ export default function PlansScreen() {
               accessibilityLabel="Limpiar filtros"
               style={styles.clearFilters}
             >
+              <X size={12} color="#F9452A" />
               <Text style={styles.clearFiltersLabel}>Limpiar filtros</Text>
             </Pressable>
           )}
@@ -237,7 +243,10 @@ export default function PlansScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           {pending.length > 0 && (
             <>
-              <Text style={[styles.sectionLabel, styles.sectionLabelPending]}>Pendientes ({pending.length})</Text>
+              <View style={styles.sectionLabelPendingRow}>
+                <View style={styles.pendingAccentDot} />
+                <Text style={[styles.sectionLabel, styles.sectionLabelPending]}>Pendientes ({pending.length})</Text>
+              </View>
               {pending.map((p) => renderPlan(p))}
             </>
           )}
@@ -311,8 +320,15 @@ const styles = StyleSheet.create({
   chipLabelActive: { color: '#fff' },
   dateRow: { flexDirection: 'row', gap: 8 },
   dateField: { flex: 1 },
-  clearFilters: { minHeight: 44, alignItems: 'flex-end', justifyContent: 'center', marginTop: 8 },
-  clearFiltersLabel: { fontSize: 12, fontWeight: '700', color: '#C2410C' },
+  clearFilters: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    marginTop: 8,
+  },
+  clearFiltersLabel: { fontSize: 12, fontWeight: '700', color: '#F9452A' },
   error: { color: '#C0392B', fontSize: 13, marginBottom: 10 },
   loading: { marginTop: 24 },
   scrollContent: { paddingBottom: 40 },
@@ -324,7 +340,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
-  sectionLabelPending: { color: '#7D6220', marginTop: 0 },
+  // El texto pasa a #2D1E1B (plano) porque el dorado corporativo es casi
+  // invisible como texto (1.5-1.7:1); se conserva como acento en el punto
+  // de al lado, con borde para distinguirse del fondo claro por sí mismo.
+  sectionLabelPendingRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 0 },
+  pendingAccentDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#F7C117', borderWidth: 1, borderColor: '#2D1E1B' },
+  sectionLabelPending: { color: '#2D1E1B', marginTop: 0 },
   emptyText: { fontSize: 12, color: '#6B6B67', marginBottom: 8 },
   planRow: {
     minHeight: 60,
@@ -336,7 +357,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 10,
   },
-  typeDot: { width: 10, height: 10, borderRadius: 5 },
+  // Borde fino en todos los puntos, no solo el dorado: un color de fondo
+  // muy claro (como el dorado corporativo) es casi invisible sobre blanco
+  // sin un contorno que le dé forma, y aplicarlo solo a un tipo sería
+  // inconsistente.
+  typeDot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1, borderColor: '#2D1E1B' },
   planInfo: { flex: 1 },
   planTitle: { fontSize: 14, fontWeight: '600', color: '#2D1E1B' },
   planMeta: { fontSize: 12, color: '#6B6B67', marginTop: 2 },

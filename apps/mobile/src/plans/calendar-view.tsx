@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import type { Plan, Reminder } from '@/api/client';
-import { planTypeColor, planTypeLabel } from '@/plans/plan-types';
+import { planTypeColor, planTypeLabel, planTypeTextColor } from '@/plans/plan-types';
 
 interface CalendarViewProps {
   plans: Plan[];
@@ -174,8 +174,13 @@ export function CalendarView({ plans, reminders, onSelectDay }: CalendarViewProp
               : firstEvent
                 ? planTypeColor(firstEvent.type)
                 : '#fff';
-          const textColor = isPast ? '#B8B2A8' : isMulti ? '#2D1E1B' : firstEvent ? '#fff' : '#2D1E1B';
-          const reminderDotColor = allRemindersDone ? 'transparent' : firstEvent && !isMulti ? '#fff' : '#3F6FBF';
+          const singleTypeTextColor = firstEvent ? planTypeTextColor(firstEvent.type) : '#2D1E1B';
+          const textColor = isPast ? '#B8B2A8' : isMulti ? '#2D1E1B' : firstEvent ? singleTypeTextColor : '#2D1E1B';
+          const reminderDotColor = allRemindersDone
+            ? 'transparent'
+            : firstEvent && !isMulti
+              ? singleTypeTextColor
+              : '#3F6FBF';
 
           const labelParts = [`${day} de ${monthLabel}`];
           if (dayEvents.length === 1) labelParts.push(`plan ${dayEvents[0].title}`);
@@ -217,7 +222,7 @@ export function CalendarView({ plans, reminders, onSelectDay }: CalendarViewProp
                     style={[
                       styles.reminderDot,
                       allRemindersDone
-                        ? { borderWidth: 1, borderColor: firstEvent && !isMulti ? '#fff' : '#3F6FBF' }
+                        ? { borderWidth: 1, borderColor: firstEvent && !isMulti ? singleTypeTextColor : '#3F6FBF' }
                         : { backgroundColor: reminderDotColor },
                     ]}
                   />
@@ -267,6 +272,6 @@ const styles = StyleSheet.create({
   cellDay: { fontSize: 12, fontWeight: '600' },
   cellTypeAbbr: { fontSize: 8, fontWeight: '700', opacity: 0.9 },
   dotRow: { flexDirection: 'row', gap: 2 },
-  typeDot: { width: 4, height: 4, borderRadius: 2 },
+  typeDot: { width: 4, height: 4, borderRadius: 2, borderWidth: 1, borderColor: '#2D1E1B' },
   reminderDot: { position: 'absolute', bottom: 4, width: 5, height: 5, borderRadius: 2.5 },
 });

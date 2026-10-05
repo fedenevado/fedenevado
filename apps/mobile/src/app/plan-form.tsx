@@ -181,7 +181,15 @@ export default function PlanFormScreen() {
                       accessibilityState={{ selected: active }}
                       style={[styles.chip, active && { backgroundColor: t.color, borderColor: t.color }]}
                     >
-                      <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{t.label}</Text>
+                      <Text
+                        style={[
+                          styles.chipLabel,
+                          active && styles.chipLabelActive,
+                          active && { color: t.textColor },
+                        ]}
+                      >
+                        {t.label}
+                      </Text>
                     </Pressable>
                   );
                 })}

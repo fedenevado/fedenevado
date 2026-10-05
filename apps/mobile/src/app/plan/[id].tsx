@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type Plan, type RsvpStatus } from '@/api/client';
-import { formatPlanDate, planTypeColor, planTypeLabel } from '@/plans/plan-types';
+import { formatPlanDate, planTypeColor, planTypeLabel, planTypeTextColor } from '@/plans/plan-types';
 import { ExpensesTab } from '@/plans/expenses-tab';
 import { ListsTab } from '@/plans/lists-tab';
 import { ChatTab } from '@/plans/chat-tab';
@@ -233,6 +233,12 @@ export default function PlanDetailScreen() {
   const visibleAvatars = confirmedParticipants.slice(0, 4);
   const extraConfirmedCount = confirmedParticipants.length - visibleAvatars.length;
 
+  const headerTextColor = planTypeTextColor(plan.type);
+  // Igual que en invite/[token].tsx: sobre coral/dorado no hay margen para
+  // texto translúcido, así que va todo en plano #2D1E1B.
+  const headerIsDark = headerTextColor !== '#fff';
+  const headerSecondaryColor = headerIsDark ? '#2D1E1B' : 'rgba(255,255,255,0.85)';
+
   return (
     <View style={styles.container}>
       <View style={[styles.headerBand, { backgroundColor: planTypeColor(plan.type) }]}>
@@ -242,12 +248,12 @@ export default function PlanDetailScreen() {
           accessibilityLabel="Volver"
           style={styles.backButton}
         >
-          <Text style={styles.backLabel}>‹ Planes</Text>
+          <Text style={[styles.backLabel, { color: headerTextColor }]}>‹ Planes</Text>
         </Pressable>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, { color: headerTextColor }]} numberOfLines={1}>
           {plan.title}
         </Text>
-        <Text style={styles.headerSubtitle} numberOfLines={1}>
+        <Text style={[styles.headerSubtitle, { color: headerSecondaryColor }]} numberOfLines={1}>
           {plan.location ? `${plan.location} · ` : ''}
           {formatPlanDate(plan.startDate, plan.endDate, plan.time)}
         </Text>
@@ -258,7 +264,7 @@ export default function PlanDetailScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Tu respuesta: ${RSVP_LABEL[myRsvp]}. Toca para cambiarla`}
             hitSlop={{ top: 6, bottom: 6 }}
-            style={styles.rsvpBadge}
+            style={[styles.rsvpBadge, headerIsDark && styles.rsvpBadgeDark]}
           >
             <Text style={styles.rsvpBadgeLabel}>{RSVP_LABEL[myRsvp].toUpperCase()}</Text>
           </Pressable>
@@ -275,7 +281,7 @@ export default function PlanDetailScreen() {
                 <Text style={styles.avatarLabel}>{getInitials(p.name)}</Text>
               </View>
             ))}
-            <Text style={styles.avatarCount}>
+            <Text style={[styles.avatarCount, { color: headerTextColor }]}>
               {extraConfirmedCount > 0 ? `+${extraConfirmedCount}` : confirmedParticipants.length}
             </Text>
           </Pressable>
@@ -537,9 +543,9 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, backgroundColor: '#F5F5F2', padding: 20, paddingTop: 56 },
   headerBand: { paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16 },
   backButton: { minHeight: 44, justifyContent: 'center', marginBottom: 6, alignSelf: 'flex-start' },
-  backLabel: { fontSize: 13, color: '#fff', fontWeight: '600' },
-  title: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 4, marginBottom: 12 },
+  backLabel: { fontSize: 13, fontWeight: '600' },
+  title: { fontSize: 20, fontWeight: '700' },
+  headerSubtitle: { fontSize: 12, marginTop: 4, marginBottom: 12 },
   headerBottomRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   rsvpBadge: {
     minHeight: 32,
@@ -550,6 +556,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     justifyContent: 'center',
   },
+  // Mismo motivo que loginPillDark en invite/[token].tsx: sobre coral/dorado
+  // la píldora translúcida blanca no da suficiente contraste con texto claro.
+  rsvpBadgeDark: { backgroundColor: '#2D1E1B', borderColor: '#2D1E1B' },
   rsvpBadgeLabel: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
   avatarStack: { flexDirection: 'row', alignItems: 'center', minHeight: 32 },
   avatarCircle: {
@@ -584,7 +593,7 @@ const styles = StyleSheet.create({
   loading: { marginTop: 24 },
   scrollContent: { paddingBottom: 40 },
   typeBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
-  typeDot: { width: 10, height: 10, borderRadius: 5 },
+  typeDot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1, borderColor: '#2D1E1B' },
   typeLabel: { fontSize: 12, fontWeight: '700', color: '#2D1E1B' },
   card: { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 16 },
   cardLine: { fontSize: 13, color: '#2D1E1B', marginBottom: 6 },
@@ -625,11 +634,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: 8,
-    backgroundColor: '#C2410C',
+    backgroundColor: '#F9452A',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dangerButtonLabel: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  dangerButtonLabel: { color: '#2D1E1B', fontSize: 13, fontWeight: '700' },
   secondaryWideButton: {
     minHeight: 44,
     borderRadius: 8,
@@ -644,11 +653,11 @@ const styles = StyleSheet.create({
   dangerWideButton: {
     minHeight: 44,
     borderRadius: 8,
-    backgroundColor: '#C2410C',
+    backgroundColor: '#F9452A',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dangerWideButtonLabel: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  dangerWideButtonLabel: { color: '#2D1E1B', fontSize: 13, fontWeight: '700' },
   gateContainer: {
     flex: 1,
     alignItems: 'center',

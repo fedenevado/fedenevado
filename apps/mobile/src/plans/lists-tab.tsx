@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Trash2 } from 'lucide-react-native';
 import { api, ApiError, type ListTemplate, type PlanList } from '@/api/client';
 
 interface Props {
@@ -193,6 +194,7 @@ export function ListsTab({ token, planId }: Props) {
                     accessibilityLabel={`Eliminar lista ${list.title}`}
                     style={styles.iconButton}
                   >
+                    <Trash2 size={13} color="#F9452A" />
                     <Text style={[styles.iconButtonLabel, styles.iconButtonDanger]}>Eliminar</Text>
                   </Pressable>
                 </View>
@@ -341,10 +343,18 @@ const styles = StyleSheet.create({
   listTitle: { fontSize: 13, fontWeight: '700', color: '#2D1E1B', flexShrink: 1 },
   listHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   listProgress: { fontSize: 11, color: '#6B6B67', marginRight: 4 },
-  iconButton: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  iconButton: {
+    minHeight: 44,
+    minWidth: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+  },
   iconButtonLabel: { fontSize: 11, fontWeight: '700', color: '#6B6B67' },
   iconButtonActive: { color: '#0E6E64' },
-  iconButtonDanger: { color: '#C2410C' },
+  iconButtonDanger: { color: '#F9452A' },
   itemRow: {
     minHeight: 44,
     flexDirection: 'row',
@@ -437,11 +447,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: 8,
-    backgroundColor: '#C2410C',
+    backgroundColor: '#F9452A',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dangerButtonLabel: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  dangerButtonLabel: { color: '#2D1E1B', fontSize: 13, fontWeight: '700' },
   overlay: {
     position: 'absolute',
     inset: 0,

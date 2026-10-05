@@ -205,10 +205,10 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: '#C2410C',
+    backgroundColor: '#F9452A',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sendButtonLabel: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  sendButtonLabel: { color: '#2D1E1B', fontSize: 13, fontWeight: '700' },
   buttonDisabled: { opacity: 0.5 },
 });

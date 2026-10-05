@@ -1,15 +1,16 @@
 import type { PlanType } from '@/api/client';
 
-export const PLAN_TYPE_OPTIONS: { value: PlanType; label: string; color: string }[] = [
-  { value: 'viaje', label: 'Viaje', color: '#0E6E64' },
-  // #C9A15A (dorado original) y #FF5A3C (naranja de marca) no pasan 4.5:1
-  // como texto ni como fondo con texto blanco encima (2.41:1 y 3.10:1).
-  // Estos tonos más oscuros sí cumplen AA, manteniendo la misma familia de
-  // color (dorado/naranja) — se propaga automáticamente a las 6 pantallas
-  // que usan planTypeColor()/PLAN_TYPE_OPTIONS.
-  { value: 'comida', label: 'Comida', color: '#7D6220' },
-  { value: 'evento', label: 'Evento', color: '#C2410C' },
-  { value: 'plan_casual', label: 'Plan casual', color: '#6B5CA5' },
+export const PLAN_TYPE_OPTIONS: { value: PlanType; label: string; color: string; textColor: string }[] = [
+  { value: 'viaje', label: 'Viaje', color: '#0E6E64', textColor: '#fff' },
+  // Colores corporativos reales de Cantixplora (extraídos del logo). El
+  // dorado (#F7C117) es casi invisible como texto/icono sobre fondo claro
+  // (1.5-1.7:1, no pasa ni el 3:1 de un gráfico) y el coral (#F9452A) da
+  // 3.55:1 sobre blanco (pasa 3:1, no 4.5:1) — por eso el texto que va
+  // ENCIMA de estos fondos no es blanco, es #2D1E1B (marca): 9.59:1 sobre
+  // dorado y 4.50:1 sobre coral, ambos cumplen AA sin negrita ni icono.
+  { value: 'comida', label: 'Comida', color: '#F7C117', textColor: '#2D1E1B' },
+  { value: 'evento', label: 'Evento', color: '#F9452A', textColor: '#2D1E1B' },
+  { value: 'plan_casual', label: 'Plan casual', color: '#6B5CA5', textColor: '#fff' },
 ];
 
 export function planTypeLabel(type: PlanType): string {
@@ -18,6 +19,10 @@ export function planTypeLabel(type: PlanType): string {
 
 export function planTypeColor(type: PlanType): string {
   return PLAN_TYPE_OPTIONS.find((t) => t.value === type)?.color ?? '#6B6B67';
+}
+
+export function planTypeTextColor(type: PlanType): string {
+  return PLAN_TYPE_OPTIONS.find((t) => t.value === type)?.textColor ?? '#fff';
 }
 
 export function isoDateToDate(iso: string): Date {

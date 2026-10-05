@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   tabBar: { height: 64, paddingBottom: 8, paddingTop: 6 },
   tabBarLabel: { fontSize: 9, fontWeight: '600' },
   tabBarLabelActive: { fontWeight: '800' },
-  tabBarBadge: { backgroundColor: '#C2410C', color: '#fff', fontSize: 9, fontWeight: '700' },
+  tabBarBadge: { backgroundColor: '#F9452A', color: '#2D1E1B', fontSize: 9, fontWeight: '700' },
   plusWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   plusButton: {
     width: 50,

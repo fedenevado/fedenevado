@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, useRouter, type Href } from 'expo-router';
+import { LogOut } from 'lucide-react-native';
 import { useAuth } from '@/auth/auth-context';
 
 const LIST_TEMPLATES_ROUTE = '/list-templates' as Href;
@@ -60,6 +61,7 @@ export default function ProfileScreen() {
         accessibilityLabel="Cerrar sesión"
         style={styles.logoutButton}
       >
+        <LogOut size={15} color="#F9452A" />
         <Text style={styles.logoutLabel}>Cerrar sesión</Text>
       </Pressable>
     </View>
@@ -101,10 +103,12 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#C2410C',
+    borderColor: '#F9452A',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
     marginTop: 8,
   },
-  logoutLabel: { fontSize: 14, fontWeight: '700', color: '#C2410C' },
+  logoutLabel: { fontSize: 14, fontWeight: '700', color: '#F9452A' },
 });

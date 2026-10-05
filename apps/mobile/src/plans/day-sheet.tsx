@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E6E6E3',
   },
-  typeDot: { width: 8, height: 8, borderRadius: 4 },
+  typeDot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1, borderColor: '#2D1E1B' },
   planTitle: { flex: 1, fontSize: 13, color: '#2D1E1B' },
   planType: { fontSize: 10, color: '#6B6B67', fontWeight: '700' },
   reminderRow: {
