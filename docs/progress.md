@@ -750,6 +750,125 @@ Tarjeta "Cerrar cuentas", textos #fff vs #2D1E1B  → 15.993:1  PASA
 Expo Go de que el nuevo marrón se vea correctamente en las 22 pantallas
 tocadas (cabeceras, botones, pestañas activas, avatar).
 
+### Paso J — Colores corporativos reales del logo (coral/dorado) en vez de los tonos oscurecidos del Paso H (pedido explícito del usuario, 2026-09-24/25)
+
+El usuario dio los 5 colores exactos del logo de Cantixplora (marrón
+`#2D1E1B`, ya aplicado en el Paso I; verde/turquesa `#00D09B`; morado
+`#743EEA`; **coral `#F9452A`**; **dorado `#F7C117`**) y pidió sustituir
+los tonos oscurecidos de las causas B/C del Paso H (`#C2410C`/`#7D6220`)
+por el coral/dorado reales, compensando la falta de contraste con
+negrita+icono en vez de renunciar a la identidad de marca.
+
+**El cálculo real cambió el enfoque respecto a lo pedido inicialmente**:
+- Dorado `#F7C117` vs blanco/`#F5F5F2`: **1.5–1.7:1** — no es "insuficiente",
+  no llega ni al 3:1 de un icono o gráfico. Ningún tamaño ni negrita lo
+  arregla (el umbral de "texto grande" solo baja a 3:1, y el dorado no
+  llega ni ahí). **No puede usarse como texto ni icono sobre fondo claro,
+  bajo ningún tamaño** — solo como fondo, con texto oscuro encima.
+- Coral `#F9452A` vs blanco: **3.55:1** — falla el 4.5:1 normal, pero sí
+  pasa el 3:1 de texto grande/gráfico.
+- `#2D1E1B` (el marrón del Paso I) sobre coral da **4.50:1** y sobre
+  dorado **9.59:1** — mejor que negrita+icono: donde el color va como
+  FONDO, cambiar el texto encima a `#2D1E1B` cumple 4.5:1 sin necesitar
+  ninguna otra compensación.
+
+Antes de aplicar nada se presentó el desglose caso por caso al usuario
+(así lo pidió explícitamente) y se resolvieron 2 preguntas abiertas:
+puntos de color (`typeDot`) con borde en **todos**, no solo "Comida" (el
+dorado sin borde sería casi invisible también como simple punto, 1.67:1);
+y los 2 usos de dorado como texto plano pasan a texto `#2D1E1B` liso con
+el dorado como acento aparte (un punto con borde), no una píldora.
+
+**A — Origen (`plan-types.ts`)**: nuevo campo `textColor` por tipo (antes
+siempre blanco) — `#fff` para Viaje/Plan casual (sin cambios, ya pasaban),
+**`#2D1E1B` para Comida y Evento**. Nueva función `planTypeTextColor()`.
+Se propaga a los 6 consumidores de `planTypeColor()`:
+- `invite/[token].tsx` y `plan/[id].tsx` (cabeceras de color): todo el
+  texto de la cabecera (tipo, título, subtítulo, organizador, badge de
+  confirmados) pasa a `#2D1E1B` cuando el tipo lo requiere. Detalle no
+  trivial encontrado al verificar: ni siquiera el 98% de opacidad de
+  `#2D1E1B` sobre coral llega a 4.5:1 (el margen real es de solo
+  4.503:1) — así que el texto "secundario" que antes iba en
+  `rgba(255,255,255,0.85)` pasa a `#2D1E1B` **totalmente opaco**, sin
+  ninguna variante atenuada, solo para estos 2 tipos. La píldora
+  "Iniciar sesión"/badge de RSVP (antes fondo blanco translúcido + texto
+  blanco) pasa a un botón sólido `#2D1E1B` con texto blanco cuando el
+  tipo es Comida/Evento, porque el translúcido no oscurece lo bastante
+  el coral para que el texto claro cumpla.
+- `plan-form.tsx` y `plans.tsx` (chips de tipo): el label activo usa
+  `t.textColor` en vez de blanco fijo.
+- `plans/calendar-view.tsx` (celdas del mes): `cellDay`/`cellTypeAbbr`
+  (la inicial añadida en el Paso H) y el punto de "tarea de ruta
+  pendiente" sobre la celda usan el color de texto correcto del tipo.
+
+**B — Los 6 fondos independientes con texto blanco** (botones "Eliminar"
+en `list-templates.tsx`/`expenses-tab.tsx`/`lists-tab.tsx`, botones de
+`plan/[id].tsx` ×2, botón "Enviar" del chat, badge de la barra de
+pestañas): fondo → coral `#F9452A`, texto → `#2D1E1B`. Cumplido sin
+negrita ni icono, es la solución correcta para un fondo, no un parche.
+
+**D — Los 7 usos de coral como texto plano sin fondo que recolorear**:
+negrita ya la tenían casi todos; se añadió icono de `lucide-react-native`
+(ya es dependencia del proyecto) en 6 de ellos — `Trash2` en los 3
+botones "Eliminar" de `list-templates.tsx`/`expenses-tab.tsx`/
+`lists-tab.tsx`, `LogOut` en "Cerrar sesión" (`profile.tsx`), `X` en
+"Limpiar filtros" (`plans.tsx`), `AlertCircle` en el aviso "Selecciona al
+menos una persona" (`expenses-tab.tsx`). El 7º (`expenseMetaWarn`, el
+" (no todos)" que va dentro de la frase "Pagó X · entre N (no todos)")
+**no lleva icono** — rompería el flujo de una frase — queda como negrita
+sola, una excepción documentada y consciente (3.55:1, pasa 3:1 gráfico
+pero no el 4.5:1 de texto normal), no un 4.5:1 real. `balanceAmount` (el
+importe negativo en Gastos, 20px bold) ya calificaba como texto grande
+antes de este cambio — pasa el 3:1 sin ninguna otra compensación.
+
+**C — Los 2 usos de dorado como texto plano** (`pendingLabel` en
+`guest-list-sheet.tsx`, `sectionLabelPending` en `plans.tsx`): imposible
+dejarlos en dorado por lo explicado arriba. A elección del usuario:
+texto pasa a `#2D1E1B` plano (igual que el resto de labels de la app) y
+se añade un punto `#F7C117` con borde `#2D1E1B` al lado, como acento que
+no carga el peso del texto.
+
+**E — Puntos de color (`typeDot`, 4 archivos: `plan/[id].tsx`,
+`plans.tsx`, `day-sheet.tsx`, `calendar-view.tsx`) y los 2 puntos de
+acento nuevos de la causa C**: borde `#2D1E1B` de 1px en **todos**, no
+solo los de tipo "Comida" — a petición explícita del usuario, por
+consistencia. Sin el borde, un punto relleno de dorado sería casi
+invisible como simple forma (1.67:1), no solo como texto.
+
+Evidencia:
+```
+$ grep -rn "#C2410C\|#7D6220" apps/mobile/src   → ninguna coincidencia
+
+$ cd apps/mobile && npx tsc --noEmit -p tsconfig.json   (verificado tras cada causa)
+(sin salida — sin errores de tipos, todas las veces)
+
+$ npx expo export --platform android   (verificado tras cada causa)
+Exported: dist   (sin errores, todas las veces)
+```
+
+Contraste real (fórmula de luminancia relativa WCAG):
+```
+#2D1E1B sobre coral #F9452A (fondos: evento, botones danger,
+  badge, enviar chat)                                4.503:1  PASA (umbral 4.5)
+#2D1E1B sobre dorado #F7C117 (fondo: comida)          9.592:1  PASA (umbral 4.5)
+Coral #F9452A como texto/icono sobre blanco
+  (large-text 3:1 o icono, los 7 casos de causa D)    3.552:1  PASA (umbral 3.0)
+Borde #2D1E1B de los puntos de tipo, vs blanco       15.993:1  PASA (umbral 3.0)
+Blanco sobre #2D1E1B (loginPillDark/rsvpBadgeDark)   15.993:1  PASA (umbral 4.5)
+```
+
+**Excepción documentada, no un 4.5:1 real**: los 7 usos de coral como
+texto plano (causa D) pasan 3:1 (texto grande/gráfico) pero no el 4.5:1
+estricto de texto normal — es una decisión consciente del usuario
+(identidad de marca sobre cumplimiento literal de 1.4.3 para estas
+etiquetas secundarias), mitigada con negrita+icono donde el layout lo
+permite. No confundir con "cumple AA" sin matices.
+
+**No verificado todavía (requiere tu dispositivo)**: prueba visual en
+Expo Go de las cabeceras de tipo Comida/Evento, los botones "Eliminar"
+con icono nuevo, "Cerrar sesión", "Limpiar filtros", y los puntos de
+color con borde.
+
 ### Paso extra — Barra de navegación inferior fija (pedido explícito del usuario, 2026-09-15)
 
 El usuario pidió sustituir la fila de botones de texto (Planes/Amigos/
