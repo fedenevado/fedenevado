@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#DCDCD8',
   },
-  headerLogoButton: { alignSelf: 'flex-start', minHeight: 44, minWidth: 44, justifyContent: 'center' },
+  headerLogoButton: { alignSelf: 'center', minHeight: 44, minWidth: 44, justifyContent: 'center' },
   // 473×100 → misma proporción para que no se deforme.
   headerLogo: { height: 24, width: 24 * (473 / 100) },
   tabBar: { height: 64, paddingBottom: 8, paddingTop: 6 },
