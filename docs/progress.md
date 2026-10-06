@@ -892,8 +892,12 @@ El usuario subió 4 PNG a `apps/mobile/assets/` (todos con fondo transparente):
   tenían `headerShown: false` y cada pantalla sumaba `insets.top`. Se añadió
   `BrandHeader` en `(tabs)/_layout.tsx` siguiendo el prototipo (cabecera
   común a las 4 pestañas; tocar el logo vuelve a Inicio). Diferencias con el
-  prototipo: fondo claro `#F5F5F2` (el PNG es marrón; el prototipo tenía
-  fondo oscuro y texto blanco). Pressable de 44pt mínimo con
+  prototipo: fondo blanco puro `#FFFFFF` (el PNG es marrón; el prototipo
+  tenía fondo oscuro y texto blanco). Primero se puso `#F5F5F2`; el
+  usuario pidió blanco puro (estilo barra superior de Instagram). Como
+  blanco vs `#F5F5F2` es solo 1.09:1, se añadió una línea inferior de 1pt
+  `#DCDCD8` (el borde más usado en la app) para separarla del contenido.
+  Logo `#2C1D1A` sobre blanco: 16.18:1. Pressable de 44pt mínimo con
   `accessibilityLabel="Cantixplora, ir a Inicio"`. `home/plans/friends/
   profile.tsx` dejan de sumar `insets.top` (ya lo hace la cabecera). Las
   pantallas fuera de pestañas (`plan/[id]`, `notifications`, etc.) no la

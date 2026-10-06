@@ -124,7 +124,14 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: '#F5F5F2', paddingHorizontal: 16 },
+  // Blanco puro sobre el #F5F5F2 de las pantallas (solo 1.09:1), así que la
+  // línea inferior es la que separa de verdad la cabecera del contenido.
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#DCDCD8',
+  },
   headerLogoButton: { alignSelf: 'flex-start', minHeight: 44, minWidth: 44, justifyContent: 'center' },
   // 473×100 → misma proporción para que no se deforme.
   headerLogo: { height: 24, width: 24 * (473 / 100) },
