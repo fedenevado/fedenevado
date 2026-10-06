@@ -23,7 +23,7 @@ type Mode = 'login' | 'signup';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { token, login, register } = useAuth();
+  const { token, user, login, register } = useAuth();
   // Llegan desde la vista previa de una invitación sin cuenta (invite/[token].tsx):
   // tras autenticarse hay que volver a esa invitación para unirse al plan.
   const params = useLocalSearchParams<{ invite?: string; mode?: string }>();
@@ -131,7 +131,7 @@ export default function LoginScreen() {
     }
   }
 
-  if (token) {
+  if (token && user) {
     if (justRegistered) {
       return <Redirect href={inviteToken ? onboardingWithInviteHref(inviteToken) : '/onboarding'} />;
     }

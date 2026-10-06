@@ -9,6 +9,10 @@ interface AuthContextValue {
   isLoading: boolean;
   token: string | null;
   user: MeResponse | null;
+  // true si al arrancar no se pudo contactar con el servidor para verificar
+  // la sesión guardada. La sesión NO se borra; se ofrece reintentar.
+  connectionError: boolean;
+  retryRestoreSession: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, username: string, email: string, password: string) => Promise<void>;
   applySession: (accessToken: string, refreshToken: string) => Promise<void>;
@@ -21,6 +25,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<MeResponse | null>(null);
+  const [connectionError, setConnectionError] = useState(false);
   // Los handlers de refresh automático (client.ts) necesitan leer siempre el
   // refresh token más reciente sin esperar a un re-render, de ahí el ref.
   const refreshTokenRef = useRef<string | null>(null);
@@ -65,7 +70,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     ]);
   }
 
+  // `token` y `user` se fijan siempre juntos: tener token sin usuario hacía
+  // que login.tsx redirigiera a /home y las pestañas de vuelta a /login, en
+  // bucle infinito ("Maximum update depth exceeded").
   async function restoreSession() {
+    setConnectionError(false);
     try {
       const [storedToken, storedRefreshToken] = await Promise.all([
         SecureStore.getItemAsync(TOKEN_KEY),
@@ -87,7 +96,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           // Fallo de red (no ApiError) al verificar el token: no se puede
           // confirmar nada, pero tampoco se borra la sesión guardada por eso.
           if (!(err instanceof ApiError)) {
-            setToken(storedToken);
+            setConnectionError(true);
           } else {
             await clearSession();
           }
@@ -109,12 +118,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
           await clearSession();
         } else {
           // Fallo de red al intentar renovar: se conserva la sesión guardada.
-          setToken(storedToken);
+          setConnectionError(true);
         }
       }
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function retryRestoreSession() {
+    setIsLoading(true);
+    await restoreSession();
   }
 
   async function applySession(accessToken: string, refreshToken: string) {
@@ -139,8 +153,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }
 
   const value = useMemo(
-    () => ({ isLoading, token, user, login, register, applySession, logout }),
-    [isLoading, token, user],
+    () => ({ isLoading, token, user, connectionError, retryRestoreSession, login, register, applySession, logout }),
+    [isLoading, token, user, connectionError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
