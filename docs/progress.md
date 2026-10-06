@@ -915,6 +915,32 @@ dispositivo real ni con VoiceOver/TalkBack.** El splash personalizado
 **no se ve en Expo Go** (Expo Go muestra su propio splash); hace falta un
 development build para comprobarlo.
 
+### Corrección — Bucle de redirección login ↔ home sin conexión (2026-10-06)
+
+Síntoma en Expo Go: "Maximum update depth exceeded" (pila en
+`expo-router/.../useSyncState.js`). Causa: al restaurar sesión, si la
+petición a `/users/me` (o el refresh) fallaba por **red** (no un `ApiError`),
+`auth-context.tsx` hacía `setToken(storedToken)` dejando `user = null`;
+`login.tsx` redirigía a `/home` por tener token y las pestañas de vuelta a
+`/login` por no tener usuario, sin fin. Se destapó porque el túnel
+`trycloudflare.com` del backend había caducado (no fue causado por el Paso K).
+
+Arreglo:
+- `auth-context.tsx`: `token` y `user` se fijan siempre juntos. En fallo de
+  red ya no se pone token; se marca `connectionError` (la sesión guardada
+  en SecureStore no se borra) y se expone `retryRestoreSession()`.
+- `index.tsx`: con `connectionError` muestra "No se pudo conectar con el
+  servidor" + botón **Reintentar** (44pt, `accessibilityLabel`, texto en
+  `role="alert"`), en vez de redirigir.
+- `login.tsx`: solo redirige como "ya logueado" con `token && user`, la
+  misma condición que las pestañas.
+
+Verificado aquí: `tsc --noEmit` sin errores; Metro sirve el bundle con el
+código nuevo. **Sin verificar en dispositivo.** Pendiente menor detectado (no
+arreglado): si el access token caducó al arrancar, el refresh automático de
+`client.ts` renueva el token pero `restoreSession` vuelve a fijar el token
+antiguo; la siguiente petición lo refresca de nuevo, así que no rompe nada.
+
 ### Paso extra — Barra de navegación inferior fija (pedido explícito del usuario, 2026-09-15)
 
 El usuario pidió sustituir la fila de botones de texto (Planes/Amigos/
