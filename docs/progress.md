@@ -881,6 +881,9 @@ El usuario subió 4 PNG a `apps/mobile/assets/` (todos con fondo transparente):
   de que decida tras verlo (opciones: fondo claro, o variante del isotipo
   con anillo blanco). El splash es decorativo (no lo lee el lector de
   pantalla), así que no es un fallo WCAG sino de marca.
+  **Resuelto (2026-10-06):** tras el aviso, el usuario cambió el fondo del
+  splash a blanco `#FFFFFF`, manteniendo el isotipo original (anillo
+  marrón), que sobre blanco sí se distingue.
 - `cantixplora-logo.png` (900×177, blanco) → `login.tsx`, sustituye el
   `<Text>cantixplora</Text>`. `Image` con `accessibilityRole="header"` +
   `accessibilityLabel="Cantixplora"`, 200pt de ancho con su proporción.

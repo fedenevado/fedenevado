@@ -24,7 +24,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#2D1E1B",
+          "backgroundColor": "#FFFFFF",
           "image": "./assets/cantixplora-isotipo.png",
           "imageWidth": 160
         }
