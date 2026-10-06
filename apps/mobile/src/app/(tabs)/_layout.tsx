@@ -1,9 +1,30 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tabs, useRouter } from 'expo-router';
 import { Heart, Home, ListChecks, Plus } from 'lucide-react-native';
 import { useAuth } from '@/auth/auth-context';
 import { useBadges } from '@/badges/badge-context';
+
+// Cabecera de marca común a las 4 pestañas (como en el prototipo: tocar el
+// logo vuelve a Inicio). Gestiona el safe area superior, así que las
+// pantallas de pestaña no suman `insets.top` por su cuenta.
+function BrandHeader() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[styles.header, { paddingTop: insets.top }]}>
+      <Pressable
+        onPress={() => router.navigate('/home')}
+        accessibilityRole="button"
+        accessibilityLabel="Cantixplora, ir a Inicio"
+        style={styles.headerLogoButton}
+      >
+        <Image source={require('../../../assets/cantixplora-txt.png')} style={styles.headerLogo} resizeMode="contain" />
+      </Pressable>
+    </View>
+  );
+}
 
 function PlusTabButton() {
   const router = useRouter();
@@ -48,7 +69,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        header: () => <BrandHeader />,
         tabBarActiveTintColor: '#2D1E1B',
         tabBarInactiveTintColor: '#B8B2A0',
         tabBarStyle: styles.tabBar,
@@ -103,6 +124,10 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  header: { backgroundColor: '#F5F5F2', paddingHorizontal: 16 },
+  headerLogoButton: { alignSelf: 'flex-start', minHeight: 44, minWidth: 44, justifyContent: 'center' },
+  // 473×100 → misma proporción para que no se deforme.
+  headerLogo: { height: 24, width: 24 * (473 / 100) },
   tabBar: { height: 64, paddingBottom: 8, paddingTop: 6 },
   tabBarLabel: { fontSize: 9, fontWeight: '600' },
   tabBarLabelActive: { fontWeight: '800' },

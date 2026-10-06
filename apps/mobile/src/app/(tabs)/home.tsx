@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useAuth } from '@/auth/auth-context';
 import { api, ApiError, type Friend, type Plan, type Reminder, type ReminderInput } from '@/api/client';
@@ -27,7 +26,6 @@ export default function HomeScreen() {
   const router = useRouter();
   const { token, user } = useAuth();
   const { refreshBadges } = useBadges();
-  const insets = useSafeAreaInsets();
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -153,7 +151,7 @@ export default function HomeScreen() {
       {isLoading ? (
         <ActivityIndicator style={styles.loading} accessibilityLabel="Cargando" />
       ) : (
-        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
           {error && (
             <Text style={styles.error} accessibilityLiveRegion="polite" role="alert">
               {error}

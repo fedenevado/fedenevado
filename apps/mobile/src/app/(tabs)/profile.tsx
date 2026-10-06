@@ -1,5 +1,4 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, useRouter, type Href } from 'expo-router';
 import { LogOut } from 'lucide-react-native';
 import { useAuth } from '@/auth/auth-context';
@@ -21,14 +20,13 @@ function getInitials(name: string): string {
 export default function ProfileScreen() {
   const router = useRouter();
   const { token, user, logout } = useAuth();
-  const insets = useSafeAreaInsets();
 
   if (!token || !user) {
     return <Redirect href="/login" />;
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
+    <View style={styles.container}>
       <Text style={styles.title}>Perfil</Text>
 
       <View style={styles.avatarWrap}>

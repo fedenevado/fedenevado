@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -143,7 +144,14 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>cantixplora</Text>
+        <Image
+          source={require('../../assets/cantixplora-logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+          accessible
+          accessibilityRole="header"
+          accessibilityLabel="Cantixplora"
+        />
         <Text style={styles.subtitle}>Planes, gastos y calendario con tus amigos, en un solo sitio.</Text>
 
         <View style={styles.card}>
@@ -265,7 +273,8 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: '#2D1E1B' },
   container: { flexGrow: 1, padding: 24, paddingTop: 64 },
-  title: { fontSize: 26, fontWeight: '700', color: '#fff', marginBottom: 4 },
+  // 900×177 → misma proporción para que no se deforme.
+  logo: { width: 200, height: 200 * (177 / 900), marginBottom: 12 },
   subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 32 },
   card: { backgroundColor: '#fff', borderRadius: 16, padding: 20 },
   tabRow: { flexDirection: 'row', gap: 6, marginBottom: 18 },

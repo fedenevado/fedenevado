@@ -9,7 +9,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, useFocusEffect, useRouter, type Href } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { useAuth } from '@/auth/auth-context';
@@ -44,7 +43,6 @@ const RSVP_LABEL: Record<string, string> = {
 export default function PlansScreen() {
   const router = useRouter();
   const { token, user } = useAuth();
-  const insets = useSafeAreaInsets();
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -141,7 +139,7 @@ export default function PlansScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top + 20 }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Text style={styles.title}>Mis planes</Text>

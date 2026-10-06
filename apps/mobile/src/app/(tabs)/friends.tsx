@@ -10,7 +10,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, useFocusEffect, useRouter, type Href } from 'expo-router';
 import { CalendarClock, Check, MessageCircle, Receipt, UserPlus, X } from 'lucide-react-native';
 import { useAuth } from '@/auth/auth-context';
@@ -54,7 +53,6 @@ export default function FriendsScreen() {
   const router = useRouter();
   const { token } = useAuth();
   const { refreshBadges } = useBadges();
-  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('invitaciones');
 
   const [query, setQuery] = useState('');
@@ -219,7 +217,7 @@ export default function FriendsScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top + 20 }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Text style={styles.title}>Amigos</Text>
