@@ -869,6 +869,45 @@ Expo Go de las cabeceras de tipo Comida/Evento, los botones "Eliminar"
 con icono nuevo, "Cerrar sesión", "Limpiar filtros", y los puntos de
 color con borde.
 
+### Paso K — Logos reales (splash, login, cabecera) (pedido explícito del usuario, 2026-10-06)
+
+El usuario subió 4 PNG a `apps/mobile/assets/` (todos con fondo transparente):
+- `cantixplora-isotipo.png` (1242×1242) → splash en `app.json` (plugin
+  `expo-splash-screen`): fondo `#2D1E1B`, `imageWidth: 160` (antes el
+  icono genérico de Expo sobre azul `#208AEF`). **Aviso de contraste:** el
+  anillo del isotipo es marrón `#402B24` sobre transparente, casi igual que
+  el fondo `#2D1E1B` pedido → en el splash solo se distingue bien la X de
+  degradado. Se aplicó tal cual lo pidió el usuario y se le avisó; pendiente
+  de que decida tras verlo (opciones: fondo claro, o variante del isotipo
+  con anillo blanco). El splash es decorativo (no lo lee el lector de
+  pantalla), así que no es un fallo WCAG sino de marca.
+- `cantixplora-logo.png` (900×177, blanco) → `login.tsx`, sustituye el
+  `<Text>cantixplora</Text>`. `Image` con `accessibilityRole="header"` +
+  `accessibilityLabel="Cantixplora"`, 200pt de ancho con su proporción.
+- `cantixplora-txt.png` (473×100, marrón) → cabecera de la app logueada.
+  **No existía ninguna cabecera con texto en la app real**: las pestañas
+  tenían `headerShown: false` y cada pantalla sumaba `insets.top`. Se añadió
+  `BrandHeader` en `(tabs)/_layout.tsx` siguiendo el prototipo (cabecera
+  común a las 4 pestañas; tocar el logo vuelve a Inicio). Diferencias con el
+  prototipo: fondo claro `#F5F5F2` (el PNG es marrón; el prototipo tenía
+  fondo oscuro y texto blanco). Pressable de 44pt mínimo con
+  `accessibilityLabel="Cantixplora, ir a Inicio"`. `home/plans/friends/
+  profile.tsx` dejan de sumar `insets.top` (ya lo hace la cabecera). Las
+  pantallas fuera de pestañas (`plan/[id]`, `notifications`, etc.) no la
+  muestran, igual que en el prototipo.
+- `cantixplora-logo-full.png` (900×177, marrón) → en el repo, sin uso todavía.
+
+Los logos son imágenes y no crecen con el tamaño de fuente del sistema;
+los logotipos están exentos de WCAG 1.4.5, y el texto real de la app sigue
+escalando.
+
+Verificación en este entorno: `tsc --noEmit` sin errores; `expo config`
+resuelve el splash nuevo; `expo export --platform android` empaqueta
+`cantixplora-logo.png` y `cantixplora-txt.png`. **Sin verificar en
+dispositivo real ni con VoiceOver/TalkBack.** El splash personalizado
+**no se ve en Expo Go** (Expo Go muestra su propio splash); hace falta un
+development build para comprobarlo.
+
 ### Paso extra — Barra de navegación inferior fija (pedido explícito del usuario, 2026-09-15)
 
 El usuario pidió sustituir la fila de botones de texto (Planes/Amigos/
@@ -1958,6 +1997,9 @@ hasta que esa confirmación llegue explícitamente.
       construyeron, pero **se quedaron fuera de esta lista de seguimiento**
       hasta que el usuario lo señaló explícitamente el 2026-09-22; nunca se
       confirmó con lector de pantalla real.
+- [ ] VoiceOver/TalkBack sobre el logo de `login.tsx` (cabecera "Cantixplora")
+      y el logo-botón de `BrandHeader` en `(tabs)/_layout.tsx` (Paso K,
+      2026-10-06) — sin confirmar todavía.
 - [ ] VoiceOver/TalkBack sobre el campo de username nuevo en `login.tsx` y
       sobre el `@handle` condicional en `friends.tsx` (Paso G de v1.0,
       2026-09-22) — sin confirmar todavía.
