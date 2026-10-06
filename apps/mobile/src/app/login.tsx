@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 24, paddingTop: 64 },
   // 900×177 → misma proporción para que no se deforme.
   logo: { alignSelf: 'center', width: 200, height: 200 * (177 / 900), marginBottom: 12 },
-  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 32 },
+  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 32, textAlign: 'center' },
   card: { backgroundColor: '#fff', borderRadius: 16, padding: 20 },
   tabRow: { flexDirection: 'row', gap: 6, marginBottom: 18 },
   tab: {
