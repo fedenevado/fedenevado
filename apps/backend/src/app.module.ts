@@ -13,6 +13,7 @@ import { ListTemplatesModule } from "./list-templates/list-templates.module";
 import { ChatModule } from "./chat/chat.module";
 import { RemindersModule } from "./reminders/reminders.module";
 import { NotificationsModule } from "./notifications/notifications.module";
+import { HealthModule } from "./health/health.module";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { NotificationsModule } from "./notifications/notifications.module";
     ChatModule,
     RemindersModule,
     NotificationsModule,
+    HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
