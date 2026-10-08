@@ -915,6 +915,43 @@ dispositivo real ni con VoiceOver/TalkBack.** El splash personalizado
 **no se ve en Expo Go** (Expo Go muestra su propio splash); hace falta un
 development build para comprobarlo.
 
+### Paso L — Backend con dominio fijo en Coolify (en curso, 2026-10-08)
+
+Pedido por el usuario antes de EAS Build: dejar de depender del túnel
+efímero `trycloudflare.com` (caduca sin avisar y la URL quedaría grabada en
+la app instalada). Decisiones del usuario:
+
+- Dominio fijo `api.cantixplora.cloud` (registro A → `89.116.38.172`, solo
+  DNS, sin proxy de Cloudflare). TLS lo emite Traefik de Coolify (Let's
+  Encrypt).
+- Repo privado → Coolify clona con una **Deploy Key de solo lectura** (no
+  la GitHub App).
+- Pasos de la interfaz de Coolify los hace el usuario; auto-deploy
+  **desactivado**, despliegue manual.
+- Migraciones: `prisma migrate deploy` se sigue lanzando a mano desde el
+  VPS (la imagen de producción no incluye el CLI de Prisma).
+
+Código:
+- `GET /health` público (sin `SupabaseAuthGuard`, sí bajo el rate-limit
+  global): hace `SELECT 1` y devuelve `{"status":"ok","database":"up"}` o
+  503. Para el health check de Coolify.
+- `trust proxy` en `main.ts`, controlado por `TRUST_PROXY_HOPS` (en
+  Coolify: `1`). Sin esto, detrás de Traefik todas las peticiones llegan
+  con la IP del proxy y el rate-limit de login/invitaciones se compartía
+  entre todos los usuarios. No se activa por defecto porque el backend de
+  desarrollo escucha en `*:3000` sin firewall: confiar en
+  `X-Forwarded-For` ahí permitiría falsear la IP. Verificado: con
+  `TRUST_PROXY_HOPS=1`, IP A llega a 429 y una IP B distinta sigue en 200;
+  sin la variable, cambiar `X-Forwarded-For` no evita el 429.
+
+**Deuda (decisión pendiente del usuario, no resolver sin pedirlo):
+desarrollo y producción comparten la misma base de datos** (el Postgres
+del Supabase self-hosted). El backend de desarrollo en tmux y el de
+Coolify leen y escriben los mismos datos: las pruebas de desarrollo se
+mezclarán con los datos reales de los amigos en la beta, y una migración
+lanzada en desarrollo afecta a producción en el acto. Separarlas (otra
+base de datos o otro Supabase para desarrollo) queda pendiente.
+
 ### Corrección — Bucle de redirección login ↔ home sin conexión (2026-10-06)
 
 Síntoma en Expo Go: "Maximum update depth exceeded" (pila en
