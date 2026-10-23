@@ -915,7 +915,7 @@ dispositivo real ni con VoiceOver/TalkBack.** El splash personalizado
 **no se ve en Expo Go** (Expo Go muestra su propio splash); hace falta un
 development build para comprobarlo.
 
-### Paso L — Backend con dominio fijo en Coolify (en curso, 2026-10-08)
+### Paso L — Backend con dominio fijo en Coolify: hecho y verificado (2026-10-08 → 2026-10-23)
 
 Pedido por el usuario antes de EAS Build: dejar de depender del túnel
 efímero `trycloudflare.com` (caduca sin avisar y la URL quedaría grabada en
@@ -943,6 +943,48 @@ Código:
   `X-Forwarded-For` ahí permitiría falsear la IP. Verificado: con
   `TRUST_PROXY_HOPS=1`, IP A llega a 429 y una IP B distinta sigue en 200;
   sin la variable, cambiar `X-Forwarded-For` no evita el 429.
+
+- `Dockerfile`: `apk add --no-cache openssl` en la etapa base (commit
+  `38d30d3`). Sin OpenSSL en Alpine, Prisma elige el motor de OpenSSL 1.1
+  y el contenedor muere al arrancar (`libssl.so.1.1` no encontrado).
+
+Dónde está todo en Coolify (`http://89.116.38.172:8000`):
+- Proyecto **Cantixplora** → entorno **production**, con dos recursos:
+  `cantixplora-backend` (app, Dockerfile `/apps/backend/Dockerfile`, base
+  `/`, puerto 3000, rama `claude/cantixplora-v0-1-setup-fc92dk`, repo
+  `git@github.com:fedenevado/fedenevado.git`) y `cantixplora-supabase`
+  (servicio). Supabase estaba en "My first project" y se movió aquí; ese
+  proyecto quedó vacío.
+- Dominio de la app: solo `https://api.cantixplora.cloud` (se quitaron el
+  `sslip.io` automático, que servía por http, y un `www.api` sin DNS).
+- Variables (8, todas **solo runtime**, nunca build time para no grabar
+  secretos en la imagen): `PORT`, `TRUST_PROXY_HOPS=1`, `DATABASE_URL`,
+  `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `SUPABASE_JWT_SECRET`, `AUTH_RESET_PASSWORD_REDIRECT_URL`. Sin
+  `CORS_ORIGIN` (CORS cerrado; la app nativa no envía `Origin`).
+- `DATABASE_URL` usa el host interno
+  `supabase-db-gzqagezrpjgr06zwffcgwvrf:5432`: el Postgres solo escucha en
+  `127.0.0.1` del host y en la red de Supabase, así que en
+  `cantixplora-supabase` se activó **Connect To Predefined Network** para
+  que esté también en la red `coolify`.
+- Health check: `GET http://localhost:3000/health`.
+
+**Aviso — compose de Supabase editado a mano.** Al reiniciar Supabase,
+Coolify no pudo descargar `minio/mc` (MinIO retiró la imagen de Docker Hub
+y quay.io) y todo el servicio se quedó parado. Se cambió en "Edit Compose
+File" la imagen de `minio-createbucket` a
+`ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z` (la misma que
+`supabase-minio`, que trae `mc`). Si se regenera Supabase desde la
+plantilla de Coolify, revisar que no vuelva `minio/mc`.
+
+Verificado (2026-10-22/23): contenedor `healthy`;
+`https://api.cantixplora.cloud/health` → 200
+`{"status":"ok","database":"up"}`; certificado Let's Encrypt válido hasta
+2027-01-20; http redirige a https; tras 60 peticiones/min → 429 y falsear
+`X-Forwarded-For` no lo evita. App móvil: `EXPO_PUBLIC_API_URL` en
+`apps/mobile/.env` → `https://api.cantixplora.cloud` (bundle comprobado,
+sin rastro de `trycloudflare`); el usuario probó login, planes y chat en
+Expo Go contra producción. El túnel `trycloudflare.com` deja de usarse.
 
 **Deuda (decisión pendiente del usuario, no resolver sin pedirlo):
 desarrollo y producción comparten la misma base de datos** (el Postgres
